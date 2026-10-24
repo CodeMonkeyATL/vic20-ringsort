@@ -40,7 +40,7 @@
 2060 print" {reverse on}{wht}";b$;"{reverse off} "
 2070 next:pa=pb+22*7:gosub1000:print"{reverse on}{wht}";b$;b$;b$;"{reverse off}":return
 
-3000 print"{clr}";:forpp=1to10:gosub2000:next:gosub1100:return
+3000 print"{clr}";:forpp=1to10:gosub2000:next:gosub1100:poke198,0:return
 
 4000 t=0
 4030 t=t+1:ifpo%(pp,t)=0then4030
