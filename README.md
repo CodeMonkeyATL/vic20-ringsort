@@ -1,39 +1,82 @@
-# template
+# ringsort
 
-template repo is a generic starter repo for vic20/commodore development
+A color-sorting ring puzzle for the **unexpanded VIC-20**, written in Commodore BASIC V2.
 
-This repository contains the current version of the BASIC source and an automated build workflow that generates a `.prg` file whenever a `.bas` file is merged through a pull request.
+Fifty rings in five colors are shuffled onto ten posts. Move rings one at a time until every post holds five rings of a single color.
 
 ## features
 
-- list game features here
-
+- 10 posts and 50 rings (red, green, blue, yellow, cyan), shuffled anew for every game
+- one-key controls: a post's number lifts a ring, another post's number drops it
+- each post holds up to six rings; the sixth slot is the room you need to move
+- a post that holds five rings of one color locks, so a finished set can't be undone by accident
+- "invalid move" and "solved!" messages
+- runs on a stock VIC-20 with no memory expansion
 
 ## how to play
-game instructions here
+
+The game deals a new shuffled board when it starts.
+
+| Key | Action |
+|---|---|
+| `1`-`9`, `0` | select post 1-9, or post 10 with `0` |
+| space | put the lifted ring back |
+| `n` | new game (asks y/n first) |
+| `r` | redraw the screen |
+| `q` | quit |
+
+**Moving a ring:**
+- Press a post's key: its top ring lifts above the post.
+- Press another post's key: the ring drops onto that post. Any color can go on any color.
+- To cancel, press the same post again or space.
+
+**Rules:**
+- A post holds at most six rings. Dropping onto a full post, or lifting from an empty one, shows "invalid move".
+- A post with exactly five rings of one color is **locked**. You can't lift from it, but you can park one extra ring on top and lift that ring off again later.
+
+**Winning:** every post is locked, five rings of one color each.
 
 ## screenshots
-![gameplay](screenshots/gameplay1.png)
-![merge](screenshots/gameplay2.png)
-![gameover](screenshots/gameover.png)
+
+A new deal: ten posts, five shuffled rings each. The empty row under each post's top is the sixth slot.
+
+![a new deal](screenshots/xvic-20261024-124528.png)
+
+Pressing `1` lifts post 1's top ring (cyan) above the post.
+
+![post 1's top ring lifted](screenshots/xvic-20261024-124606.png)
+
+Pressing `2` drops it onto post 2. Post 2 was full with five rings, so the cyan ring goes into its sixth slot, and post 1 is left with four.
+
+![the cyan ring dropped onto post 2](screenshots/xvic-20261024-124620.png)
 
 ## compatibility
-list compatibility and hardware requirements
+
+- Unexpanded VIC-20 (3583 bytes free for BASIC). Not yet tested with RAM expansion.
+- Tested in VICE 3.10 (xvic).
 
 ## repository layout
 
 ```
 src/
-  template.bas        main BASIC source file, rename for your project
+  ringsort.bas       the game
+  prototype.bas      early hard-coded drawing prototype
+  randomcolors.bas   early shuffle experiment
 
 prgs/
-  (auto-generated .prg files created by the GitHub Action)
+  (.prg files built by the GitHub Action)
+
+docs/
+  design.md            how the program works: data model, routines, variables, memory
+  basic-guidelines.md  how we write BASIC for the unexpanded VIC-20
+  cheatsheet.md        petcat tokens, VIC-20 color codes and registers
+
+screenshots/
+  images used in this README (temp/ holds working captures and is gitignored)
 
 tools/
-  petcat           linux petcat executable used by CI
-  petcat.exe       windows petcat executable for local development
-  c1541            linux c1541 executable used by CI for generating disk images
-  c1541.exe        windows c1541 executable used for generating disk images
+  petcat, petcat.exe   petcat for Linux (CI) and Windows (local builds)
+  c1541, c1541.exe     c1541 for making disk images
 
 buildtools/
   build-and-run.ps1  local build: petcat the current .bas, then autostart it in xvic
@@ -41,26 +84,17 @@ buildtools/
   tasks.vs.json      Visual Studio task (copy to .vs/tasks.vs.json)
   tasks.json         VS Code task (copy to .vscode/tasks.json)
 
-docs/
-  design.md        optional notes about game logic or memory usage
-  changelog.md     version history
-
-.github/
-  workflows/
-    build-prg.yml  automatic build on PR merge
+.github/workflows/
+  build-prg.yml      builds .prg files when a pull request is merged
 ```
 
 ## building
 
-The `.prg` file is generated using `petcat`. The repository includes both Linux and Windows versions of petcat in the `tools` folder.
-
-To build manually:
+The `.prg` is generated with `petcat`. The repository includes Linux and Windows versions in `tools/`.
 
 ```
-petcat -w2 -o template[.prg] src/template.bas
+petcat -w2 -l 1001 -o prgs/ringsort src/ringsort.bas
 ```
-
-This produces a PRG that can be loaded on a VIC-20 or in VICE.
 
 ### build and run from the IDE
 
@@ -73,37 +107,32 @@ The IDE config folders are gitignored, so copy the task file into place once:
 
 ## running
 
-### run in VICE
+### in VICE
 
 ```
-xvic -memory unexpanded template.prg
+xvic -memory none -autostart prgs/ringsort
 ```
 
 or load it from the BASIC prompt:
 
 ```
-load "template.prg",8
+load "ringsort",8
 run
 ```
 
-### run on real hardware
+### on real hardware
 
-Copy the PRG to a disk image or transfer it using your preferred method (SD2IEC, Pi1541, etc.). The game requires no RAM expansion.
+Copy the PRG to a disk image or transfer it with your preferred method (SD2IEC, Pi1541, etc.). No RAM expansion is needed.
 
-## development notes
+## automatic build
 
-Additional technical notes, PETSCII layout sketches, and memory usage details can be found in the `docs` folder. These files are optional and may grow as the project evolves.
+When a pull request that changes any `.bas` file is merged (or a `v*` tag is pushed), the GitHub Action in `.github/workflows/build-prg.yml`:
 
-## automatic build (work in progress)
+- runs the repository's `tools/petcat` on each changed `.bas` file
+- writes the resulting `.prg` files to `prgs/`
+- commits them to `main`, naming the pull request or tag in the commit message
 
-When a pull request containing changes to any `.bas` file is merged, the GitHub Action in `.github/workflows/build-prg.yml` automatically:
-
-- copies the repo’s `tools/petcat` executable into the action runner  
-- runs `petcat` to generate the `.prg` file  
-- writes the resulting `.prg` file into the `prgs` folder  
-- commits the generated file back to the main branch  
-
-This keeps the PRG output synchronized with the BASIC source without installing the full VICE package.
+This keeps the PRGs in sync with the BASIC source without installing the full VICE package.
 
 ## license
 

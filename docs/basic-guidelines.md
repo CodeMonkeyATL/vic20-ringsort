@@ -12,6 +12,7 @@ Measured with petcat, or standard BASIC V2 storage:
 | `:` between statements | 1 byte. So joining statements onto one line saves 4 bytes per line removed. |
 | Keyword (`print`, `gosub`, …) | 1 byte, however long it lists |
 | Space outside a string | 1 byte |
+| Blank line in the source | 0 bytes: petcat skips it (verified: identical PRG) |
 | Each digit of a number literal | 1 byte (`7680` = 4 bytes every time it appears) |
 | Simple variable (any type) | 7 bytes, once |
 | Array | 5 + 2×dims bytes header, plus per element: float 5, integer `%` 2, string 3 + text |
@@ -23,6 +24,7 @@ Check real usage with `?fre(0)` after a run. Re-check whenever data structures c
 
 ### Source formatting
 - **No spaces in code.** Spaces belong only inside strings, where they're content. The space after the line number in the source is free, because petcat drops it.
+- **Separate routines with a blank line.** Blank lines cost nothing, so keep them even in a tightened program; they make the `.bas` file easier to read.
 - **Joining statements with `:` is postponed while developing.** Keep one statement or small group per line while the code is being written and debugged; separate lines are easier to edit, test and `goto`. Joining is a separate pass, done only when asked to "tighten" the program's memory (or similar), usually when we're near the memory ceiling. If memory isn't tight, it may never happen. During a tightening pass, merge lines until something needs a line number (a `goto`/`gosub` target, or the line after an `if` whose rest must be skipped) or the 88-character limit is reached. That saves 4 bytes per line removed.
 - **Line length limit: 88 characters as the VIC lists it** (4 screen rows). Count the line number, the space after it, keywords at full length, and each petcat code such as `{blk}` as **1** character. A longer line runs, but can't be edited on the VIC, so it's not allowed.
 
