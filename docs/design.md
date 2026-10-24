@@ -67,7 +67,7 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 | 1100 | move the cursor to the start of the message row | | |
 | 1200 | clear the message row | | |
 | 2000 | draw post `pp`: rows 0-6 from `po%`, then the base | `pp` | |
-| 3000 | clear the screen and draw all posts | | |
+| 3000 | clear the screen, draw all posts, discard keys typed meanwhile | | |
 | 4000 | find the top ring of post `pp` | `pp` | `t` |
 | 4100 | is post `pp` locked? | `pp` | `l` (-1/0) |
 | 10000 | one-time setup: color codes, post addresses | | |
@@ -106,7 +106,10 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 - **Win check:** only a drop that locks its destination post can finish the game, so 400 checks that post first and scans all 10 posts only if it just locked. The scan stops at the first post that isn't locked.
 - **Redraws:** a move redraws only the posts it touches (routine 2000); `r` and a new game redraw everything (3000).
 - **Seeding:** `rnd(-ti)` at startup. In xvic, autostart takes the same time on every run, so the first deal can repeat between runs; on real hardware, the time spent typing `RUN` varies it.
-- **Keyboard buffer:** keys typed while the program is busy (dealing, drawing) are kept and played back afterwards. A `poke198,0` after the deal would discard them, if that's ever wanted.
+- **Keyboard buffer:** the KERNAL keeps up to 10 keys typed while the program is busy, and address 198 holds the count.
+  - The full-screen draw (3000) ends with `poke198,0`, which discards keys typed during the deal or an `r` redraw, so they can't make moves on a board the player hasn't seen yet.
+  - Move redraws don't flush: there, type-ahead is wanted (a quick `1` then `2` should lift and drop).
+  - The y/n prompt doesn't flush either, so a fast `n` then `y` works.
 
 ## Memory
 
@@ -116,5 +119,6 @@ On an unexpanded VIC-20, program and variables share 3583 bytes.
 |---|---|---|---|
 | 2026-10-24 | 3245 | ~16 | move logic, with development `rem`s |
 | 2026-10-24 | 1519 | ~1738 | tightened: `rem`s moved here, lines joined |
+| 2026-10-24 | 1526 | ~1731 | keyboard flush after full draws |
 
 The arrays take 204 bytes (`po%` 185, `cl%` 19), and the 18 simple variables take 7 bytes each (126).
