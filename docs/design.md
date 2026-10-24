@@ -154,6 +154,6 @@ On an unexpanded VIC-20, program and variables share 3583 bytes.
 | 2026-10-24 | 1519 | ~1738 | tightened: `rem`s moved here, lines joined |
 | 2026-10-24 | 1526 | ~1731 | keyboard flush after full draws |
 | 2026-10-24 | 1748 | ~1509 | move row messages (red `TO M` on an invalid drop), the dealing progress block, white "dealing..." |
-| 2026-10-24 | 2039 | ~1190 | sounds: ring up/down, invalid, cancel, win, deal |
+| 2026-10-24 | 2061 | ~1170 | sounds: ring up/down, invalid, cancel, win, deal (quieter and lower) |
 
 The arrays take 204 bytes (`po%` 185, `cl%` 19), and the 18 simple variables take 7 bytes each (126).
