@@ -26,15 +26,15 @@ A color-sorting ring puzzle for an **unexpanded VIC-20**, written in Commodore B
 ## Program architecture (`ringsort.bas`)
 
 - **Flow:** setup (10000) → deal (20000) → draw (3000) → main loop (100), which waits on `get` and dispatches `n` (200: asks "new game? y/n" on row 19, then deal + draw), `r` (redraw) and `q` (quit, 990). Keys `1`-`0` (posts 1-10) are not handled yet.
-- **Data model:** `po%(pp,k)` for post `pp` = 1..10:
-  - `k=0`: screen address of the post's top (hover) cell.
-  - `k=1..5`: rings, where 1 is just below the cap; the value is a PETSCII color code, 0 = empty.
-  - `k=6`: the extra stack slot just above the base (0 = empty; when filled, the base drops one row).
-  - `k=7`: a ring hovering above the post (at most one post at a time).
-- `cl%(0..4)` holds the color codes (red 28, green 30, blue 31, yellow 158, cyan 159). Lines 2-4 create the hot draw variables first, then dim `po%` before `cl%`, because BASIC searches variables and arrays in creation order. Setup (10000) fills in the colors and the post addresses `po%(pp,0)`. Deal (20000) can run repeatedly: it fills slots 1-5 in order (two posts per color), clears slots 6-7, then Fisher-Yates shuffles the 50 rings in place in `po%` (ring k = post `int((k-1)/5)+1`, slot `k-5*post+5`).
+- **Data model:** `po%(pp,k)` for post `pp` = 1..10. Index `k` is the screen row below the post origin, so slot `k` is drawn at `origin+22*k`. Ring values are PETSCII color codes; 0 = empty.
+  - `k=0`: hover, a ring lifted above the post (at most one post at a time).
+  - `k=1`: cap slot. It's empty at the start and takes a 6th ring dropped onto a full post; without it no first move is possible. When empty it draws as the pole top.
+  - `k=2..6`: rings 1-5, stacked on the base. The top ring of a post is its lowest non-zero index from 1 to 6, and a dropped ring goes in the index just above it (legal only if that index is at least 1).
+  - `k=7`: the post origin's screen address (the hover cell). The base is always drawn on row 7 and never moves.
+- `cl%(0..4)` holds the color codes (red 28, green 30, blue 31, yellow 158, cyan 159). Lines 2-4 create the hot draw variables first, then dim `po%` before `cl%`, because BASIC searches variables and arrays in creation order. Setup (10000) fills in the colors and the post addresses `po%(pp,7)`. Deal (20000) can run repeatedly: it fills slots 2-6 in order (two posts per color), clears slots 0-1, then Fisher-Yates shuffles the 50 rings in place in `po%` (ring k = post `int((k-1)/5)+1`, slot `k-5*post+6`).
 - **Layout:** the posts are in 2 rows × 5 columns. A post's origin is `x=1+col*4`, `y=1+row*9` on the 22×23 screen. Screen RAM starts at `sb=7680` ($1E00).
-- **Drawing:** routines take a screen address in `pa`; `gosub 1000` converts it to row/column and moves the cursor with KERNAL PLOT (`poke781,row:poke782,col:poke783,0:sys65520`). Then PRINT draws with reverse video and color codes. The per-post draw order is base (2000), rings (2100), cap (2200), hover (2300). `b$=chr$(230)` is the checker glyph used for the pole, cap and base. A ring is `{rvs on}<color> <checker> {rvs off}`, 3 cells wide.
-- Subroutines live at fixed line-number blocks (1000, 2000-2300, 3000, 10000, 20000). Keep new routines in their own blocks.
+- **Drawing:** routines take a screen address in `pa`; `gosub 1000` converts it to row/column and moves the cursor with KERNAL PLOT (`poke781,row:poke782,col:poke783,0:sys65520`). Then PRINT draws with reverse video and color codes. One routine (2000) draws a post: rows 0-6 from `po%(pp,0..6)` (a ring, or else the pole, or blanks for an empty hover row), then the base on row 7. `b$=chr$(230)` is the checker glyph used for the pole and base. A ring is `{rvs on}<color> <checker> {rvs off}`, 3 cells wide.
+- Subroutines live at fixed line-number blocks (1000, 2000, 3000, 10000, 20000). Keep new routines in their own blocks.
 
 ## Coding guidelines
 
