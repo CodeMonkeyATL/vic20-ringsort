@@ -79,7 +79,8 @@ tools/
   c1541, c1541.exe     c1541 for making disk images
 
 buildtools/
-  build-and-run.ps1  local build: petcat the current .bas, then autostart it in xvic
+  build-and-run.ps1  local build: check, petcat the current .bas, then autostart it in xvic
+  check-basic.ps1    lint a .bas file against docs/basic-guidelines.md (warnings only)
   screenshot.ps1     save the running xvic screen to screenshots/temp/ (gitignored)
   tasks.vs.json      Visual Studio task (copy to .vs/tasks.vs.json)
   tasks.json         VS Code task (copy to .vscode/tasks.json)
@@ -98,7 +99,7 @@ petcat -w2 -l 1001 -o prgs/ringsort src/ringsort.bas
 
 ### build and run from the IDE
 
-`buildtools/build-and-run.ps1` builds the open `.bas` file into `prgs/` and autostarts it in xvic. If xvic is already running with its remote monitor on port 6510, the program is sent to that window; otherwise a new xvic is started with `-remotemonitor`. `petcat.exe` and `xvic.exe` must be on your `PATH`.
+`buildtools/build-and-run.ps1` checks the open `.bas` file with `check-basic.ps1`, builds it into `prgs/` and autostarts it in xvic. The check prints warnings (missing jump targets, lines too long to edit on the VIC, stray spaces, line-number problems) but never stops the build. If xvic is already running with its remote monitor on port 6510, the program is sent to that window; otherwise a new xvic is started with `-remotemonitor`. `petcat.exe` and `xvic.exe` must be on your `PATH`.
 
 The IDE config folders are gitignored, so copy the task file into place once:
 
