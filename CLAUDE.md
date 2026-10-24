@@ -35,9 +35,13 @@ A color-sorting ring puzzle for an **unexpanded VIC-20**, written in Commodore B
 - **Drawing:** routines take a screen address in `pa`; `gosub 1000` converts it to row/column and moves the cursor with KERNAL PLOT (`poke781,row:poke782,col:poke783,0:sys65520`). Then PRINT draws with reverse video and color codes. The per-post draw order is base (2000), rings (2100), cap (2200), hover (2300). `b$=chr$(230)` is the checker glyph used for the pole, cap and base. A ring is `{rvs on}<color> <checker> {rvs off}`, 3 cells wide.
 - Subroutines live at fixed line-number blocks (1000, 2000-2300, 10000, 20000). Keep new routines in their own blocks.
 
-## BASIC V2 gotchas that matter here
+## Coding guidelines
 
-- Only the first two characters of a variable name are significant (`pp` and `ppx` are the same variable), and a name must not contain a BASIC keyword (e.g. `to`, `if`, `or`). `r` and `c` are reused as loop variables after init, so watch for collisions.
-- Unexpanded RAM means about 3.5 KB for program plus variables, so keep code and arrays lean.
-- petcat auto-numbers unnumbered source lines (previous line + 2; e.g. the `rem po(...)` notes after line 1060 become 1062-1068). So they end up in the PRG and use RAM, and they need a numbering gap after the preceding line. Lowercase in the source becomes unshifted PETSCII (displayed as uppercase on the VIC).
+Follow these for all BASIC written in this repo:
+
+@docs/basic-guidelines.md
+
+## petcat and xvic notes
+
+- petcat auto-numbers unnumbered source lines (previous line + 2). So they end up in the PRG, and they need a numbering gap after the preceding line. Lowercase in the source becomes unshifted PETSCII (displayed as uppercase on the VIC).
 - In xvic, `-keymap 0` (symbolic) makes PC keys type their printed symbols. Under the positional keymap, `=` is on Page Down.
