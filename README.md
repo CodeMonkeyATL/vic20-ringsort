@@ -10,7 +10,8 @@ Fifty rings in five colors are shuffled onto ten posts. Move rings one at a time
 - one-key controls: a post's number lifts a ring, another post's number drops it
 - each post holds up to six rings; the sixth slot is the room you need to move
 - a post that holds five rings of one color locks, so a finished set can't be undone by accident
-- "invalid move" and "solved!" messages
+- a move readout (`MOVE 1 … TO 2`, `MOVE CANCELED`) plus "invalid move" and "solved!" messages
+- a flickering color block shows the shuffle at work while dealing
 - runs on a stock VIC-20 with no memory expansion
 
 ## how to play

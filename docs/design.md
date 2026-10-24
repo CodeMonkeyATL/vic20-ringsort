@@ -32,7 +32,12 @@ row 7   ###   base (never moves)
 ```
 
 - **Characters:** a ring is 3 cells: `{rvs on}<color> <checker> {rvs off}`. The pole and base use the checker glyph `chr$(230)` (`b$`) in white.
-- **Row 19** is the message row: "new game? y/n", "invalid move", "solved!".
+- **Messages start at column 1,** aligned with the left edge of the posts.
+- **Row 19** is the move row: `MOVE N` when a ring is lifted from post N, `TO M` at column 12 when it's dropped on post M, and `MOVE CANCELED` when it's put back. A new lift clears the row. A new game or redraw clears the whole screen, including this row. Row 18 stays blank as a gap below the bottom posts' bases.
+  - Dropping on a full post prints `TO M` in red (and "invalid move" on row 20). The ring stays lifted; the next valid drop overwrites the red text with a white `TO M`.
+  - The text is printed *before* the posts are redrawn, so the player sees the response at once; a post redraw takes about half a second.
+- **Row 20** is the message row: "new game? y/n", "invalid move", "solved!".
+- **While dealing,** row 0 shows "dealing..." followed by a block in column 10 that changes color on every swap of the shuffle.
 
 ## Data model
 
@@ -58,14 +63,17 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 |---|---|---|---|
 | 1-2 | init: variables, arrays, seed, setup, first deal and draw | | |
 | 110 | main loop: `get` a key and dispatch | | |
-| 200 | new game: ask y/n on row 19, then deal and draw | | |
+| 200 | new game: ask y/n on row 20, then deal and draw | | |
 | 300 | post key: lift post `n`'s top ring, or drop onto `n` if a ring is lifted | `n` | |
 | 390 | print "invalid move" | | |
-| 400 | drop the lifted ring onto post `n`, redraw both posts, check for a win | `n`, `hp` | |
+| 395 | invalid drop: print `TO n` in red on the move row, then "invalid move" (390) | `n` | |
+| 400 | drop the lifted ring onto post `n`, redraw both posts, print `TO n`, check for a win | `n`, `hp` | |
+| 480 | the drop was a cancel (`n` = `hp`): print `MOVE CANCELED` | | |
 | 990 | quit: restore screen colors and blue text | | |
 | 1000 | move the cursor to screen address `pa` (KERNAL PLOT) | `pa` | |
 | 1100 | move the cursor to the start of the message row | | |
 | 1200 | clear the message row | | |
+| 1300 | clear the move row (19) and park the cursor at its start | | |
 | 2000 | draw post `pp`: rows 0-6 from `po%`, then the base | `pp` | |
 | 3000 | clear the screen, draw all posts, discard keys typed meanwhile | | |
 | 4000 | find the top ring of post `pp` | `pp` | `t` |
@@ -103,6 +111,7 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
   - It fills slots 2-6 in order (posts 1-2 get color 0, posts 3-4 color 1, and so on), clears slots 0-1, then shuffles.
   - The shuffle is Fisher-Yates over the 50 rings, numbered `k=pp*5+i-6` (1-50). Each ring swaps with a random ring `j` from 1 to `k`, which lives at post `a=int((j-1)/5)+1`, slot `j-5*a+6`.
   - The shuffle runs in place in `po%`, so no separate array is needed.
+  - **Progress block:** before the shuffle, `poke7690,160` puts a reverse space after "dealing..." (row 0, column 10). Each swap pokes its color RAM (38410) with `(jand7)or1`, using the random ring number `j`. Color RAM takes VIC color numbers 0-7, not the PETSCII codes in `po%`; `or1` keeps the result odd (white, cyan, green, yellow), so the block never turns black and vanishes.
 - **Win check:** only a drop that locks its destination post can finish the game, so 400 checks that post first and scans all 10 posts only if it just locked. The scan stops at the first post that isn't locked.
 - **Redraws:** a move redraws only the posts it touches (routine 2000); `r` and a new game redraw everything (3000).
 - **Seeding:** `rnd(-ti)` at startup. In xvic, autostart takes the same time on every run, so the first deal can repeat between runs; on real hardware, the time spent typing `RUN` varies it.
@@ -120,5 +129,6 @@ On an unexpanded VIC-20, program and variables share 3583 bytes.
 | 2026-10-24 | 3245 | ~16 | move logic, with development `rem`s |
 | 2026-10-24 | 1519 | ~1738 | tightened: `rem`s moved here, lines joined |
 | 2026-10-24 | 1526 | ~1731 | keyboard flush after full draws |
+| 2026-10-24 | 1748 | ~1509 | move row messages (red `TO M` on an invalid drop), the dealing progress block, white "dealing..." |
 
 The arrays take 204 bytes (`po%` 185, `cl%` 19), and the 18 simple variables take 7 bytes each (126).
