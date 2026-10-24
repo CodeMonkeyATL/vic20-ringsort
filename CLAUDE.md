@@ -25,15 +25,16 @@ A color-sorting ring puzzle for an **unexpanded VIC-20**, written in Commodore B
 
 ## Program architecture (`ringsort.bas`)
 
-- **Data model:** `po(pp,k)` for post `pp` = 1..10:
+- **Flow:** setup (10000) → deal (20000) → draw (3000) → main loop (100), which waits on `get` and dispatches `n` (200: asks "new game? y/n" on row 19, then deal + draw), `r` (redraw) and `q` (quit, 990). Keys `1`-`0` (posts 1-10) are not handled yet.
+- **Data model:** `po%(pp,k)` for post `pp` = 1..10:
   - `k=0`: screen address of the post's top (hover) cell.
   - `k=1..5`: rings, where 1 is just below the cap; the value is a PETSCII color code, 0 = empty.
   - `k=6`: the extra stack slot just above the base (0 = empty; when filled, the base drops one row).
   - `k=7`: a ring hovering above the post (at most one post at a time).
-- `cl(1..5)` holds the color codes (red 28, green 30, blue 31, yellow 158, cyan 159). Init (line 20000+) fills `cc(1..50)` with 10 of each color index, Fisher-Yates shuffles it, and deals it into `po`.
+- `cl%(0..4)` holds the color codes (red 28, green 30, blue 31, yellow 158, cyan 159). Lines 2-4 create the hot draw variables first, then dim `po%` before `cl%`, because BASIC searches variables and arrays in creation order. Setup (10000) fills in the colors and the post addresses `po%(pp,0)`. Deal (20000) can run repeatedly: it fills slots 1-5 in order (two posts per color), clears slots 6-7, then Fisher-Yates shuffles the 50 rings in place in `po%` (ring k = post `int((k-1)/5)+1`, slot `k-5*post+5`).
 - **Layout:** the posts are in 2 rows × 5 columns. A post's origin is `x=1+col*4`, `y=1+row*9` on the 22×23 screen. Screen RAM starts at `sb=7680` ($1E00).
 - **Drawing:** routines take a screen address in `pa`; `gosub 1000` converts it to row/column and moves the cursor with KERNAL PLOT (`poke781,row:poke782,col:poke783,0:sys65520`). Then PRINT draws with reverse video and color codes. The per-post draw order is base (2000), rings (2100), cap (2200), hover (2300). `b$=chr$(230)` is the checker glyph used for the pole, cap and base. A ring is `{rvs on}<color> <checker> {rvs off}`, 3 cells wide.
-- Subroutines live at fixed line-number blocks (1000, 2000-2300, 10000, 20000). Keep new routines in their own blocks.
+- Subroutines live at fixed line-number blocks (1000, 2000-2300, 3000, 10000, 20000). Keep new routines in their own blocks.
 
 ## Coding guidelines
 
