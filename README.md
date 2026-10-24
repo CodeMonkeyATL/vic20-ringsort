@@ -35,6 +35,12 @@ tools/
   c1541            linux c1541 executable used by CI for generating disk images
   c1541.exe        windows c1541 executable used for generating disk images
 
+buildtools/
+  build-and-run.ps1  local build: petcat the current .bas, then autostart it in xvic
+  screenshot.ps1     save the running xvic screen to screenshots/temp/ (gitignored)
+  tasks.vs.json      Visual Studio task (copy to .vs/tasks.vs.json)
+  tasks.json         VS Code task (copy to .vscode/tasks.json)
+
 docs/
   design.md        optional notes about game logic or memory usage
   changelog.md     version history
@@ -55,6 +61,15 @@ petcat -w2 -o template[.prg] src/template.bas
 ```
 
 This produces a PRG that can be loaded on a VIC-20 or in VICE.
+
+### build and run from the IDE
+
+`buildtools/build-and-run.ps1` builds the open `.bas` file into `prgs/` and autostarts it in xvic. If xvic is already running with its remote monitor on port 6510, the program is sent to that window; otherwise a new xvic is started with `-remotemonitor`. `petcat.exe` and `xvic.exe` must be on your `PATH`.
+
+The IDE config folders are gitignored, so copy the task file into place once:
+
+- Visual Studio (Open Folder): copy `buildtools/tasks.vs.json` to `.vs/tasks.vs.json`, then Build with a `.bas` file active.
+- VS Code: copy `buildtools/tasks.json` to `.vscode/tasks.json`, then run the default build task.
 
 ## running
 
