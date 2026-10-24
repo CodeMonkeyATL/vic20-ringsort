@@ -22,6 +22,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
+          # check out the branch the PR merged into, not the detached merge ref, so the commit step can push
+          ref: ${{ github.event.pull_request.base.ref || github.ref }}
 
       - name: install petcat (cached)
         run: |
@@ -33,9 +35,10 @@ jobs:
         id: basfiles
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | grep '\.bas$' || true)
+            # skip deleted files; join with spaces since $GITHUB_OUTPUT needs a single line
+            files=$(git diff --name-only --diff-filter=d ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }} | grep '\.bas$' | tr '\n' ' ' || true)
           else
-            files=$(git ls-files '*.bas')
+            files=$(git ls-files '*.bas' | tr '\n' ' ')
           fi
           echo "files=$files" >> $GITHUB_OUTPUT
 
