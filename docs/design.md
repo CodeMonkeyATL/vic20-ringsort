@@ -78,6 +78,8 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 | 3000 | clear the screen, draw all posts, discard keys typed meanwhile | | |
 | 4000 | find the top ring of post `pp` | `pp` | `t` |
 | 4100 | is post `pp` locked? | `pp` | `l` (-1/0) |
+| 5000 | sound sweep: step register `v` from `f` to `e` by `s`, then poke `v` with 0 | `v`, `f`, `e`, `s` | |
+| 5100 | win chime: 4 rising notes on the high voice | | |
 | 10000 | one-time setup: color codes, post addresses | | |
 | 20000 | deal: fill posts in order, then shuffle | | |
 
@@ -100,7 +102,8 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 | `hp` | post with a lifted ring (0 = none) |
 | `t` | top ring index (from 4000); swap temporary in the deal |
 | `l` | lock result from 4100 |
-| `j`, `a` | deal: random ring number, then its slot (`j`) and post (`a`) |
+| `j`, `a` | deal: random ring number, then its slot (`j`) and post (`a`). `j` is also the win chime's delay loop |
+| `v`, `f`, `e`, `s` | sound sweep (5000): register, from, end, step |
 
 `pa` through `b$` are created first, on line 1, because BASIC searches variables in creation order and these are read most often while drawing. `po%` is dimmed before `cl%` for the same reason: arrays are searched in creation order too.
 
@@ -120,6 +123,27 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
   - Move redraws don't flush: there, type-ahead is wanted (a quick `1` then `2` should lift and drop).
   - The y/n prompt doesn't flush either, so a fast `n` then `y` works.
 
+## Sound
+
+**How the VIC makes sound:**
+- **Voices:** three square-wave voices, low (36874), middle (36875) and high (36876), plus noise (36877).
+- **Pitch:** a voice plays when its register holds 128-255 (higher = higher pitch) and is silent at 0.
+- **Volume:** 36878 holds the volume (0-15) for all voices. Line 2 sets it to 15, and quitting (990) sets it to 0, so no stuck note keeps playing.
+- **No envelopes or timers:** a sweep is a BASIC loop poking the pitch, and the game waits while it runs.
+
+**Where each sound plays:** the move sounds play after the move text is printed and before the posts are redrawn, so the text appears first.
+
+**Tuning:** I can't hear xvic, so these values are a starting point to adjust by ear. In routine 5000, a smaller step (`s`, which may be a fraction such as `.5`, since `poke` drops the fraction) makes a sweep longer and smoother.
+
+| Sound | Line | Voice | Values |
+|---|---|---|---|
+| ring up | 360 | middle 36875 | `f=200`, `e=240`, `s=4` (rising) |
+| ring down | 430 | middle 36875 | `f=240`, `e=190`, `s=-2` (a longer, deeper fall than ring up, so it doesn't sound like cancel) |
+| invalid move (lift or drop) | 390 | low 36874 | `f=150`, `e=130`, `s=-1` (falling buzz) |
+| cancel | 480-485 | noise 36877 at 250 | sweeps the **volume** 36878 from 15 to 0 by -1 (a short, airy fade), then restores it to 15 |
+| win | 5100 | high 36876 | notes `195+i*12` for `i`=1-4 (207, 219, 231, 243), each held by a 99-step delay loop |
+| deal | 20070-20150 | middle 36875 | `200+j` on every shuffle swap (random pitch), at volume 6 so it stays in the background; after the shuffle the voice goes off and the volume back to 15 |
+
 ## Memory
 
 On an unexpanded VIC-20, program and variables share 3583 bytes.
@@ -130,5 +154,6 @@ On an unexpanded VIC-20, program and variables share 3583 bytes.
 | 2026-10-24 | 1519 | ~1738 | tightened: `rem`s moved here, lines joined |
 | 2026-10-24 | 1526 | ~1731 | keyboard flush after full draws |
 | 2026-10-24 | 1748 | ~1509 | move row messages (red `TO M` on an invalid drop), the dealing progress block, white "dealing..." |
+| 2026-10-24 | 2061 | ~1170 | sounds: ring up/down, invalid, cancel, win, deal (quieter and lower) |
 
 The arrays take 204 bytes (`po%` 185, `cl%` 19), and the 18 simple variables take 7 bytes each (126).
