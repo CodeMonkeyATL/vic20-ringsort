@@ -17,6 +17,9 @@ $prgs = Join-Path $root 'prgs'
 New-Item -ItemType Directory -Force -Path $prgs | Out-Null
 $prg = Join-Path $prgs $PrgName
 
+# warnings only; the build goes ahead either way
+& (Join-Path $PSScriptRoot 'check-basic.ps1') -BasFile $BasFile
+
 & petcat.exe -w2 -l 1001 -o $prg $BasFile
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE

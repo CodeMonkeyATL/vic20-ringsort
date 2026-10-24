@@ -20,6 +20,8 @@ Measured with petcat, or standard BASIC V2 storage:
 
 Check real usage with `?fre(0)` after a run. Re-check whenever data structures change.
 
+`buildtools/check-basic.ps1` checks the mechanical rules below on every Build: jump targets, the 88-character limit, spaces outside strings, and line numbering. The rest (naming, data structures, constructs) still needs a reviewer's eye.
+
 ## Rules
 
 ### Source formatting
