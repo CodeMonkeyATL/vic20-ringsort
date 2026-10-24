@@ -142,7 +142,7 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 | invalid move (lift or drop) | 390 | low 36874 | `f=150`, `e=130`, `s=-1` (falling buzz) |
 | cancel | 480-485 | noise 36877 at 250 | sweeps the **volume** 36878 from 15 to 0 by -1 (a short, airy fade), then restores it to 15 |
 | win | 5100 | high 36876 | notes `195+i*12` for `i`=1-4 (207, 219, 231, 243), each held by a 99-step delay loop |
-| deal | 20120, 20150 | high 36876 | `200+j` on every shuffle swap (random pitch); off after the shuffle |
+| deal | 20070-20150 | middle 36875 | `200+j` on every shuffle swap (random pitch), at volume 6 so it stays in the background; after the shuffle the voice goes off and the volume back to 15 |
 
 ## Memory
 

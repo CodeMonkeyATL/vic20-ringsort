@@ -66,7 +66,8 @@
 10050 r=int((pp-1)/5):c=pp-1-5*r:po%(pp,7)=sb+(1+r*9)*22+1+c*4:next:return
 
 20000 print"{clr}{wht}dealing...":hp=0:forpp=1to10:fori=2to6:po%(pp,i)=cl%(int((pp-1)/2)):next
-20070 po%(pp,0)=0:po%(pp,1)=0:next:poke7690,160:forpp=10to1step-1:fori=6to2step-1
-20120 j=int(rnd(1)*(pp*5+i-6))+1:poke38410,(jand7)or1:poke36876,200+j
+20070 po%(pp,0)=0:po%(pp,1)=0:next:poke7690,160:poke36878,6
+20080 forpp=10to1step-1:fori=6to2step-1
+20120 j=int(rnd(1)*(pp*5+i-6))+1:poke38410,(jand7)or1:poke36875,200+j
 20130 a=int((j-1)/5)+1:j=j-5*a+6:t=po%(pp,i):po%(pp,i)=po%(a,j):po%(a,j)=t:next:next
-20150 poke36876,0:return
+20150 poke36875,0:poke36878,15:return
