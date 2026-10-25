@@ -15,7 +15,8 @@ How `src/ringsort.bas` works. The source has no comments: they cost too much mem
 - **Winning:** you win when all 10 posts are locked.
 - **Score:** moves (successful drops; cancels and invalid moves don't count) and time, both live on the top row. The timer starts when the board is drawn, freezes on a win, and stops at 99:59. The session's best moves and best time (tracked separately) show on row 21 once a game is won. They're lost on quit.
 - **Splash:** at launch a title screen waits for a key; that keypress seeds the random numbers.
-- **Other keys:** `n` new game (asks y/n first), `r` redraw, `q` quit.
+- **Other keys:** `n` new game (asks y/n first, then a deal number), `r` redraw, `q` quit.
+- **Deal numbers:** every deal has a number from 1 to 99999, shown on row 22. After `n` and `y`, the player types a deal number to replay or share a deal, or presses Return alone for a random one. The first game after the splash is random.
 
 ## Screen layout
 
@@ -40,9 +41,10 @@ row 7   ###   base (never moves)
 - **Row 19** is the move row: `MOVE N` when a ring is lifted from post N, `TO M` at column 12 when it's dropped on post M, and `MOVE CANCELED` when it's put back. A new lift clears the row. A new game or redraw clears the whole screen, including this row. Row 18 stays blank as a gap below the bottom posts' bases.
   - Dropping on a full post prints `TO M` in red (and "invalid move" on row 20). The ring stays lifted; the next valid drop overwrites the red text with a white `TO M`.
   - The text is printed *before* the posts are redrawn, so the player sees the response at once; a post redraw takes a moment.
-- **Row 20** is the message row: "new game? y/n", "invalid move", "solved!". On a win, the move row is cleared first.
+- **Row 20** is the message row: "new game? y/n", "deal #" (with the digits typed so far), "invalid move", "solved!". On a win, the move row is cleared first.
 - **Row 0** is the status row: `MOVES 000 TIME 00:00` from column 1 to 20 (moves digits at columns 7-9, minutes 16-17, seconds 19-20). Printed by 3100 on every full draw; after that only the digits are poked (6000).
 - **Row 21** is the session best, in cyan: `BEST  000      00:00`, digits in the same columns as row 0. Drawn only once a game has been won.
+- **Row 22** shows `DEAL n`, the current deal number, printed by 3110 on every full draw.
 - **Splash (7000):** "RINGSORT" at row 6, column 7, each letter in a color (red, green, purple, yellow, cyan, repeating; no blue, which is hard to read on black); "CODEMONKEYATL" at row 8, column 4; "PRESS A KEY" at row 20, column 5.
 - **While dealing,** row 0 shows "dealing..." followed by a block in column 10 that changes color on every swap of the shuffle.
 
@@ -73,8 +75,9 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 |---|---|---|---|
 | 1-2 | init: hot variables, `po%`, volume and colors, post offsets `po%(pp,7)`; then the splash and the first game (210) | | |
 | 110 | main loop: `get` a key and dispatch; while no key, tick the timer (6100). Only `n` (tested last, at 160) ends with `goto110`; the other branches fall through the remaining tests, which can't match their key | | |
-| 170 | new game prompt: ask y/n on row 20; on `y` start a game (210); clear the prompt either way | | |
-| 210 | start a game: seed `rnd` from `ti`, deal and draw (2500), start the timer | | |
+| 170 | new game prompt: ask y/n on row 20; on `y` read a deal number (250) and start a game (210); clear the prompt either way | | |
+| 210 | start a game: if `dn` is 0, seed from `ti` and pick a random deal number; then (220) seed `rnd(-dn)`, deal and draw (2500), start the timer | `dn` | `dn` |
+| 250 | read a deal number on the message row: digits (up to 5) are echoed, DEL erases one, other keys are ignored, Return ends. Nothing typed (or 0) leaves `dn`=0, which 210 turns into a random deal | | `dn` |
 | 300 | post key: lift post `n`'s top ring, or drop onto `n` if a ring is lifted | `n` | |
 | 390 | print "invalid move" | | |
 | 395 | invalid drop: print `TO n` in red on the move row, then "invalid move" (390) | `n` | |
@@ -113,10 +116,11 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 | `po%(10,7)` | posts (see Data model) |
 | `k$` | key read by `get` |
 | `n` | post selected by a key (1-10) |
+| `dn` | deal number (1-99999; 0 = pick a random one) |
 | `hp` | post with a lifted ring (0 = none) |
 | `t` | top ring index (from 4000); swap temporary in the deal; 6000's quotient; the dummy result of `rnd(-ti)` |
 | `l` | lock result from 4100, or complete result from 4110 |
-| `j`, `a` | deal: random ring number, then its slot (`j`) and post (`a`). `j` is also the delay loop of the win chime and the lock sound, and 6200's minutes; `a` is also 6000's screen address |
+| `j`, `a` | deal: random ring number, then its slot (`j`) and post (`a`). `j` is also the delay loop of the win chime and the lock sound, 6200's minutes and 250's digit count; `a` is also 6000's screen address and 250's key code |
 | `mv`, `mb` | moves this game; session best moves (0 = no win yet) |
 | `tb`, `te`, `tw` | timer: `ti` when the board was drawn; elapsed seconds last shown (the final time after a win); session best time in seconds |
 | `wn` | timer state: 0 running, -1 frozen by a win, 1 stopped at 99:59 |
@@ -138,7 +142,15 @@ The temporaries `t`, `j` and `i` are shared between routines that never run insi
 - **Win check:** only a drop that locks its destination post can finish the game, so 400 checks that post first and scans all 10 posts only if it just locked. The scan stops at the first post that isn't locked.
 - **Lock sound timing:** 430 redraws the destination post first, then checks its lock and plays the lock sound, and only then redraws the source post. So the solid base appears and the sound plays together. The lock check is repeated at 445 for the win check, because drawing the source post (2000) overwrites `l`. On the winning drop, the lock sound plays before the win chime.
 - **Redraws:** a move redraws only the posts it touches (routine 2000); `r` and a new game redraw everything (3000).
-- **Seeding:** `rnd(-ti)` seeds from the jiffy clock, so the seed is only as varied as the moment it's taken. Autostart resets the machine and reaches line 2 at almost the same `ti` every time (157 or 158 jiffies, measured in xvic), so seeding at startup gave the same first board on nearly every launch, and `rnd(1)` then repeated the same series of boards. Seeding twice (`rnd(-ti)`, then `rnd(-rnd(1)*1000)`) doesn't help: the same input still gives the same output. So the seed is taken when a human presses a key: 210 seeds right after the splash's keypress, and again after each new game's `y` (170).
+- **Seeding:** `rnd(-ti)` seeds from the jiffy clock, so the seed is only as varied as the moment it's taken. Autostart resets the machine and reaches line 2 at almost the same `ti` every time (157 or 158 jiffies, measured in xvic), so seeding at startup gave the same first board on nearly every launch, and `rnd(1)` then repeated the same series of boards. Seeding twice (`rnd(-ti)`, then `rnd(-rnd(1)*1000)`) doesn't help: the same input still gives the same output. So the seed is taken when a human presses a key: 210 seeds right after the splash's keypress, and again after each new game's deal number entry (250).
+- **Deal numbers:** a deal is fully determined by its seed, so the deal number is the seed. For a random deal, 210 seeds from `ti`, discards one `rnd(1)`, picks `dn=int(rnd(1)*99999)+1` from the next; then 220 reseeds with `rnd(-dn)`, discards two `rnd(1)` values, and deals. A typed number skips straight to 220. So the same number always gives the same board. Details:
+  - `dn` is an ordinary float variable, so 5 digits need no range check: any 1-99999 is valid. It's never used with `and`/`or` or stored in an integer array, which is where the 32767 limit applies.
+  - 0 is never a seed: `rnd(0)` reads a hardware timer instead of seeding. Entering 0 (or nothing) gives a random deal instead.
+  - **Why the discards:** the first `rnd(1)` after `rnd(-x)` is almost a linear function of `x` when neighboring seeds have the same float exponent. Measured in xvic: seeds 150-159 gave deal numbers 4629, 99758, 95278, 90410, … (each about 4870 lower, wrapping), and seeds 50000-50004 gave first values .001, .908, .814, .721, .627. The second value is still partly patterned; the third and later look independent. So the random pick uses the 2nd value after the `ti` seed, and the shuffle starts at the 3rd value after the `dn` seed. Without the discards, neighboring `ti` values gave evenly stepped deal numbers, and neighboring deal numbers shared the first swaps of the shuffle.
+  - **Measured fairness** (2000 consecutive `ti` seeds, bucketed by 10000): the first value gave a suspiciously perfect 195-205 per bucket (the fixed step wrapping); the second value gave 185-217 with 47 neighbor pairs within 1000 of each other (about 40 expected), which is what independent random numbers look like.
+  - **Variety of the first game:** its seed is the `ti` jiffy count when the splash key is pressed, so a press 1-10 seconds after launch can give about 540 different first deals, each equally likely. Every jiffy (1/60 s) gives a different deal, and human timing isn't that precise, so it isn't predictable. Later games seed from `ti` at the deal prompt, which ranges much wider.
+  - **Deal numbers are tied to the deal code** (2500-2550) and to the order of `rnd` calls. Changing the shuffle or the colors changes what every number means, so a future deal variant (e.g. hard mode) should be told apart, e.g. by a prefix.
+  - The entry routine (250) builds the number arithmetically (`dn=dn*10+a-48`, `dn=int(dn/10)` for DEL), so it makes no string garbage. It echoes accepted keys by printing `k$` itself; printing DEL (20) erases the last digit on screen.
 - **The live timer:** there's no interrupt code of our own. The KERNAL's interrupt already increments the jiffy clock `ti` 60 times a second.
   - The main loop's idle `get` loop calls 6100 on every pass. It computes the elapsed seconds `int((ti-tb)/60)` and redraws only when they change, so the cost is one calculation per pass.
   - During sounds and redraws the display doesn't update, but the clock keeps counting, and the next idle pass catches up. The time is always computed from `ti`, so it never drifts.
@@ -148,7 +160,7 @@ The temporaries `t`, `j` and `i` are shared between routines that never run insi
   - The full-screen draw (3000) runs `poke198,0` after drawing the posts, which discards keys typed during the deal or an `r` redraw, so they can't make moves on a board the player hasn't seen yet.
   - Move redraws don't flush: there, type-ahead is wanted (a quick `1` then `2` should lift and drop).
   - The y/n prompt doesn't flush either, so a fast `n` then `y` works.
-  - The splash and the y/n prompt wait with `wait198,255`, which pauses until the count is non-zero (any key), with no loop line of its own. `wait198,1` would hang when 2 keys are already waiting.
+  - The splash, the y/n prompt and the deal number entry wait with `wait198,255`, which pauses until the count is non-zero (any key), with no loop line of its own. `wait198,1` would hang when 2 keys are already waiting.
 
 ## Sound
 
@@ -186,5 +198,6 @@ On an unexpanded VIC-20, program and variables share 3583 bytes.
 | 2026-10-25 | 2243 | 984 | solid base on complete posts, lock sound (measured: `?fre(0)` after a move and quit) |
 | 2026-10-25 | 2932 | 239 | score: moves, live timer, session best; splash screen; keypress seeding (measured the same way; not tightened) |
 | 2026-10-25 | 2569 | 690 | second tightening: 10 fewer variables (screen offsets instead of addresses, shared temporaries, the checker glyph embedded as `{CBM-+}` instead of `b$`), no color array, one PLOT per post draw, tail calls and joined lines (measured the same way) |
+| 2026-10-25 | 2817 | 435 | deal numbers: random 1-99999 or typed after `n`/`y`, shown on row 22 (entry ~150 bytes, seeding ~80 including the `rnd` discards, display ~25) |
 
-`po%` takes 185 bytes, and the 22 simple variables take 7 bytes each (154; `mb` and `tw` appear only after the first win).
+`po%` takes 185 bytes, and the 23 simple variables take 7 bytes each (161; `mb` and `tw` appear only after the first win).

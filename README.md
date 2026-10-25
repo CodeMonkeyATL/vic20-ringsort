@@ -13,6 +13,7 @@ Fifty rings in five colors are shuffled onto ten posts. Move rings one at a time
 - a move readout (`MOVE 1 … TO 2`, `MOVE CANCELED`) plus "invalid move" and "solved!" messages
 - a live score on the top row: moves and a running timer, plus the session's best moves and best time
 - a splash screen; its keypress seeds the shuffle, so every launch gets a different board
+- deal numbers: every board has a number (1-99999) shown at the bottom; type it in after `n` to replay a board or share it with a friend
 - a flickering color block shows the shuffle at work while dealing
 - sound effects: dealing chatter, ring up and down, an invalid-move buzz, a cancel woosh, a lock ding-ding and a win chime
 - runs on a stock VIC-20 with no memory expansion
@@ -25,7 +26,7 @@ Press a key on the title screen to deal a new shuffled board.
 |---|---|
 | `1`-`9`, `0` | select post 1-9, or post 10 with `0` |
 | space | put the lifted ring back |
-| `n` | new game (asks y/n first) |
+| `n` | new game: asks y/n, then a deal number (Return alone = random deal) |
 | `r` | redraw the screen |
 | `q` | quit |
 

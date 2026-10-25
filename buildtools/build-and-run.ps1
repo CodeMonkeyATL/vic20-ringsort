@@ -25,22 +25,22 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-function Try-ViceAutostart([string]$prgPath) {
+# sends one monitor command and waits for a reply matching $expect; a wedged monitor accepts the connection
+# but never answers, so this returns $false after 2 seconds. Always reads the reply before closing.
+function Send-ViceCommand([string]$command, [string]$expect) {
     $client = $null
     try {
         $client = New-Object System.Net.Sockets.TcpClient
         $client.Connect('127.0.0.1', 6510)
         $stream = $client.GetStream()
-        $unix = $prgPath -replace '\\', '/'
-        $bytes = [System.Text.Encoding]::ASCII.GetBytes("autostart `"$unix`"`n")
+        $bytes = [System.Text.Encoding]::ASCII.GetBytes("$command`n")
         $stream.Write($bytes, 0, $bytes.Length)
         $stream.Flush()
 
-        # wait for xvic to confirm; a wedged monitor accepts the connection but never answers
         $reply = ''
         $buffer = New-Object byte[] 4096
         $deadline = [DateTime]::Now.AddSeconds(2)
-        while ([DateTime]::Now -lt $deadline -and $reply -notmatch 'autostarting') {
+        while ([DateTime]::Now -lt $deadline -and $reply -notmatch $expect) {
             if ($stream.DataAvailable) {
                 $count = $stream.Read($buffer, 0, $buffer.Length)
                 $reply += [System.Text.Encoding]::ASCII.GetString($buffer, 0, $count)
@@ -48,7 +48,7 @@ function Try-ViceAutostart([string]$prgPath) {
                 Start-Sleep -Milliseconds 50
             }
         }
-        return $reply -match 'autostarting'
+        return $reply -match $expect
     } catch {
         return $false
     } finally {
@@ -56,6 +56,17 @@ function Try-ViceAutostart([string]$prgPath) {
             $client.Close()
         }
     }
+}
+
+function Try-ViceAutostart([string]$prgPath) {
+    # autostart re-types the last monitor keybuf string (e.g. from keys.ps1) after RUN, so a test's old keys
+    # would reach the new program. Replace that string with one "z" first; the program's own flush drops it.
+    # keybuf and autostart must go out on separate connections: sent together, the monitor wedges.
+    if (Send-ViceCommand 'keybuf z' '\(C:') {
+        Start-Sleep -Milliseconds 300
+    }
+    $unix = $prgPath -replace '\\', '/'
+    return Send-ViceCommand "autostart `"$unix`"" 'autostarting'
 }
 
 if (Try-ViceAutostart $prg) {
