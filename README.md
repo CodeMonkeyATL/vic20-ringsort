@@ -44,6 +44,10 @@ Press a key on the title screen to deal a new shuffled board.
 
 ## screenshots
 
+The splash screen. The key you press here seeds the shuffle.
+
+![the splash screen](screenshots/splash.png)
+
 A new deal: ten posts, five shuffled rings each. The empty row under each post's top is the sixth slot.
 
 ![a new deal](screenshots/xvic-20261024-124528.png)
