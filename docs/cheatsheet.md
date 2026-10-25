@@ -66,7 +66,7 @@ The graphic glyphs are 96–127 and 160–191. The codes 192–254 repeat them: 
 
 | PETSCII | Glyph |
 |---|---|
-| 166 | ▒ full-cell checkerboard (230 is the same glyph; RingSort's `b$`) |
+| 166 | ▒ full-cell checkerboard (230 is the same glyph) |
 | 124 | checkerboard, left half only |
 | 168 | checkerboard, lower half only |
 
@@ -182,22 +182,11 @@ Voice values:
 
 ### Patterns
 
-- **Sweep:** `fori=ftoesteps:pokev,i:next:pokev,0` slides one voice from pitch `f` to `e`. Positive step = rising, negative = falling. The step size sets the speed.
+There are no envelopes or timers: every sound effect is a BASIC loop poking registers, and the program waits while it runs.
+
+- **Sweep:** `fori=ftoesteps:pokev,i:next:pokev,0` slides one voice from pitch `f` to `e`. Positive step = rising, negative = falling. The step size sets the speed. A fractional step (e.g. `.5`) makes a sweep longer and smoother, because `poke` drops the fraction.
 - **Fade:** sweep the volume register (`v=36878`) from 15 down to 0 while a voice holds a note. The sweep ends with `pokev,0`, which leaves volume at 0, so set it back to 15 afterward.
 - **Notes with a delay:** poke a pitch, then run a `forj=1to99:next` busy-wait to hold it, then poke the next pitch.
 - **Background rumble:** turn the volume down (e.g. 6) and poke random pitches during a long loop as a "working…" sound.
-
-### RingSort sound map (`src/ringsort.bas`)
-
-The shared sweep routine is at line 5000: set `v` (register), `f` (from), `e` (to), `s` (step), then `gosub5000`.
-
-| Event | Line | Voice | Values | Sound |
-|---|---|---|---|---|
-| Startup | 2 | Volume | 15 | Full volume. |
-| Dealing | 20070–20150 | Alto, volume 6 | Random 201–250 per swap | Quiet random chatter, then alto off and volume back to 15. |
-| Pick up ring | 360 | Alto | 200→240 step 4 | Quick rising chirp. |
-| Drop ring | 430 | Alto | 240→190 step −2 | Slower falling chirp. |
-| Invalid move | 390 | Bass | 150→130 step −1 | Low falling buzz. |
-| Move canceled | 480–485 | Noise 250 + volume | Volume 15→0 step −1 | Hiss that fades out. Noise is turned off and volume reset to 15 afterward. |
-| Solved | 5100 | Soprano | 207, 219, 231, 243 | Four rising notes, each held by a delay loop. |
-| Quit | 990 | Volume | 0 | Silences everything. |
+- **Hygiene:** set the volume to 15 at startup, turn each voice off when its sound ends, and set the volume to 0 on quit, so no note is left playing.
+- **Sweep subroutine:** one shared routine with its parameters in variables (register, from, to, step) keeps every effect to one line. Calling it with the volume register as the target turns it into a fade.
