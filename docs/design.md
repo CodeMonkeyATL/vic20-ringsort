@@ -33,7 +33,7 @@ row 6   rrr
 row 7   ###   base (never moves)
 ```
 
-- **Characters:** a ring is 3 cells: `{rvs on}<color> <checker> {rvs off}`. The pole and base use the checker glyph `chr$(230)` (`b$`) in white.
+- **Characters:** a ring is 3 cells: `{rvs on}<color> <checker> {rvs off}`. The pole and base use the checker glyph in white, written in the strings as `{CBM-+}` (PETSCII 166; 230 is the same glyph). It sits inside the string literals, so it costs 1 byte per use and needs no variable.
 - **Drawing a post:** one PLOT to the post origin, then each of rows 0-6 is printed with a trailing `{down}{left}{left}{left}`, which steps the cursor to the start of the next row. One PLOT per row was slower and cost more bytes.
 - **Complete posts:** when slots 2-6 hold one color, the base is drawn as 3 reverse spaces in that color instead of the white checker, so the post looks like a filled vessel. The solid base ends with `{wht}`, so the text printed next (the move row, messages) stays white.
 - **Messages start at column 1,** aligned with the left edge of the posts.
@@ -110,7 +110,6 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 | `pa` | screen offset passed to 1000 |
 | `pp` | post number (parameter and loop variable) |
 | `i` | loop temporary (draw rows, deal slots, lock check, digits) |
-| `b$` | checker glyph, `chr$(230)` |
 | `po%(10,7)` | posts (see Data model) |
 | `k$` | key read by `get` |
 | `n` | post selected by a key (1-10) |
@@ -124,7 +123,7 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 | `w`, `d` | 6000/6200: value to show, digit count |
 | `v`, `f`, `e`, `s` | sound sweep (5000): register, from, end, step |
 
-`pa` through `b$` are created first, on line 1, because BASIC searches variables in creation order and these are read most often while drawing.
+`pa`, `pp` and `i` are created first, on line 1, because BASIC searches variables in creation order and these are read most often while drawing.
 
 The temporaries `t`, `j` and `i` are shared between routines that never run inside each other's use of them: 6000 runs from the move code only after 420 is done with `t`, and 6200 runs only from the idle loop, the win and the full draw, none of which is inside the deal's or a sound's use of `j`.
 
@@ -186,6 +185,6 @@ On an unexpanded VIC-20, program and variables share 3583 bytes.
 | 2026-10-24 | 2061 | ~1170 | sounds: ring up/down, invalid, cancel, win, deal (quieter and lower) |
 | 2026-10-25 | 2243 | 984 | solid base on complete posts, lock sound (measured: `?fre(0)` after a move and quit) |
 | 2026-10-25 | 2932 | 239 | score: moves, live timer, session best; splash screen; keypress seeding (measured the same way; not tightened) |
-| 2026-10-25 | 2598 | 653 | second tightening: 9 fewer variables (screen offsets instead of addresses, shared temporaries), no color array, one PLOT per post draw, tail calls and joined lines (measured the same way) |
+| 2026-10-25 | 2569 | 690 | second tightening: 10 fewer variables (screen offsets instead of addresses, shared temporaries, the checker glyph embedded as `{CBM-+}` instead of `b$`), no color array, one PLOT per post draw, tail calls and joined lines (measured the same way) |
 
-`po%` takes 185 bytes, and the 23 simple variables take 7 bytes each (161; `mb` and `tw` appear only after the first win).
+`po%` takes 185 bytes, and the 22 simple variables take 7 bytes each (154; `mb` and `tw` appear only after the first win).

@@ -1,4 +1,4 @@
-1 pa=0:pp=0:i=0:b$=chr$(230):dimpo%(10,7):poke36879,12:poke36878,15
+1 pa=0:pp=0:i=0:dimpo%(10,7):poke36879,12:poke36878,15
 2 forpp=1to10:po%(pp,7)=19+4*pp-178*(pp>5):next:gosub7000:gosub210
 
 110 getk$:ifk$=""thengosub6100:goto110
@@ -43,11 +43,11 @@
 1300 pa=419:gosub1000:print"                  ";:goto1000
 
 2000 pa=po%(pp,7):gosub1000:fori=0to6
-2040 ifpo%(pp,i)thenprint"{reverse on}";chr$(po%(pp,i));" ";b$;" {reverse off}{down}{left}{left}{left}";:goto2070
+2040 ifpo%(pp,i)thenprint"{reverse on}";chr$(po%(pp,i));" {CBM-+} {reverse off}{down}{left}{left}{left}";:goto2070
 2050 ifi=0thenprint"   {down}{left}{left}{left}";:goto2070
-2060 print" {reverse on}{wht}";b$;"{reverse off} {down}{left}{left}{left}";
+2060 print" {reverse on}{wht}{CBM-+}{reverse off} {down}{left}{left}{left}";
 2070 next:gosub4110:iflthenprint"{reverse on}";chr$(po%(pp,2));"   {reverse off}{wht}":return
-2080 print"{reverse on}{wht}";b$;b$;b$;"{reverse off}":return
+2080 print"{reverse on}{wht}{CBM-+}{CBM-+}{CBM-+}{reverse off}":return
 
 2500 print"{clr}{wht}dealing...":hp=0:forpp=1to10:po%(pp,0)=0:po%(pp,1)=0
 2510 fori=2to6:po%(pp,i)=asc(mid$("{red}{grn}{blu}{yel}{cyn}",pp/2+.5)):next:next
