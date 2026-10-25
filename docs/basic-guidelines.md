@@ -31,8 +31,8 @@ Check real usage with `?fre(0)` after a run. Re-check whenever data structures c
 - **Line length limit: 88 characters as the VIC lists it** (4 screen rows). Count the line number, the space after it, keywords at full length, and each petcat code such as `{blk}` as **1** character. A longer line runs, but can't be edited on the VIC, so it's not allowed.
 
 ### Petcat codes over `chr$()`
-- Put control and color characters in strings as petcat codes: `{blk}`, `{clr}`, `{rvs on}`, `{down}` cost 1 byte each. `chr$(144)` costs 6 bytes, plus concatenation.
-- For graphic characters, use petcat's graphic codes where they exist. Use `chr$()` only for a character petcat can't express, and then assign it to a variable once (e.g. `b$=chr$(230)`) instead of repeating it.
+- Put control and color characters in strings as petcat codes: `{blk}`, `{clr}`, `{reverse on}`, `{down}` cost 1 byte each (petcat rejects the short form `{rvs on}`). `chr$(144)` costs 6 bytes, plus concatenation.
+- For graphic characters, use petcat's named codes where they exist (`{CBM-+}`), or `{$xx}` with two lowercase hex digits for any other code (`{$e6}` = 230). Both cost 1 byte inside a string; see the cheatsheet. Use `chr$()` only for 34 (quote) and 0, which can't go inside a string literal, and then assign it to a variable once instead of repeating it.
 
 ### Variables
 - **Names are one or two characters.** Only two are significant anyway, so longer names waste bytes and invite collisions (`pp` and `ppx` are the same variable).

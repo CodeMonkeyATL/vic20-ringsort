@@ -40,9 +40,26 @@ These are the codes you embed in strings (e.g. `print "{clr}"`) and are recogniz
 
 These are the full set of VIC-20 cursor/mode controls supported by petcat.
 
+## ✍️ Any PETSCII code in a string: `{$xx}`
+
+petcat turns `{$xx}` into the single byte `xx` (hex). So any PETSCII code can go straight into a string literal as plain ASCII source, including graphic glyphs that are hard to type in a PC editor. For example, `print"{$e6}{$e6}{$e6}"` prints three checkerboards.
+
+| Way to print PETSCII 230 | Bytes in the program |
+|---|---|
+| `"{$e6}"` inside a string | 1 |
+| `chr$(230)` | 6 (`chr$` token, parentheses, 3 digits), plus a `;` and quotes to join it to the text around it |
+| `b$=chr$(230)` once, then `;b$;` | 10 for the assignment, 7 for the variable, then 4 or more per use |
+
+Many graphic glyphs also have keyboard names: `{CBM-x}` and `{SHIFT-x}` are the glyph you get by typing x with the C= or SHIFT key. For example, `{CBM-+}` = 166 (the checkerboard) and `{SHIFT-*}` = 192 (horizontal line). A name is easier to read, while `{$xx}` works for every code and is exactly the code you mean.
+
+**Rules and traps** (checked against the byte output of this repo's `tools/petcat.exe`):
+- **Exactly two lowercase hex digits.** `{$E6}` (uppercase) or `{$5}` (one digit) is an "unknown control code" error, and petcat stops there: the output PRG is truncated to a 2-byte stub. Write `{$05}`, not `{$5}`.
+- **Never `{$22}` or `{$00}`.** petcat writes them raw: 34 is the quote, so it ends the string early, and 0 is the end-of-line marker, so it cuts the BASIC line apart. Use `chr$(34)` and `chr$(0)` for these two.
+- The color and cursor codes have proper names (see the tables above). Use those instead of `{$xx}`, since the name says what the code does.
+
 ## 🔳 Useful graphics PETSCII codes
 
-These are glyphs, not actions: print them with `chr$(code)`. All of them were verified pixel by pixel in xvic with `src/glyphtest.bas`, in the default uppercase/graphics mode (lowercase mode wasn't tested).
+These are glyphs, not actions: embed them in strings with `{$xx}` (see above), or print them with `chr$(code)`. All of them were verified pixel by pixel in xvic with `src/glyphtest.bas`, in the default uppercase/graphics mode (lowercase mode wasn't tested).
 
 The graphic glyphs are 96–127 and 160–191. The codes 192–254 repeat them: 192–223 = 96–127 and 224–254 = 160–190. 255 is π, the same as 126. A position below is the row (y) or column (x) of the line within the 8×8 cell, counting from 0 at the top or left.
 
