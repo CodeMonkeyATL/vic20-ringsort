@@ -55,21 +55,33 @@ Every hard and expert deal we tested with a solver could be won. Hard is forgivi
 
 ## screenshots
 
-The splash screen. The key you press here seeds the shuffle.
+The splash screen. The key you press here picks the mode and seeds the shuffle.
 
 ![the splash screen](screenshots/splash.png)
 
-A new deal: ten posts, five shuffled rings each. The empty row under each post's top is the sixth slot.
+A classic deal (deal 2026): ten posts, five shuffled rings each. The checkered pole top above each post is the sixth slot. The top row shows the moves and the time, the bottom row the deal number.
 
-![a new deal](screenshots/xvic-20261024-124528.png)
+![classic deal 2026](screenshots/classic-deal.png)
 
-Pressing `1` lifts post 1's top ring (cyan) above the post.
+Pressing `3` lifts post 3's top ring (green) above the post. In the air it's solid: the post no longer runs through it.
 
-![post 1's top ring lifted](screenshots/xvic-20261024-124606.png)
+![post 3's top ring lifted](screenshots/classic-lift.png)
 
-Pressing `2` drops it onto post 2. Post 2 was full with five rings, so the cyan ring goes into its sixth slot, and post 1 is left with four.
+Pressing `4` drops it onto post 4. Post 4 was full with five rings, so the green ring goes into its sixth slot, and post 3 is left with four. The move counter goes to 001.
 
-![the cyan ring dropped onto post 2](screenshots/xvic-20261024-124620.png)
+![the green ring dropped onto post 4](screenshots/classic-drop.png)
+
+A solved board: every post holds five rings of one color, and each base has turned solid. The session's best moves and time appear in cyan.
+
+![a solved classic board](screenshots/classic-win.png)
+
+The same deal number in hard mode: 40 rings in four colors, with posts 5 and 10 empty. A ring may only go onto the same color or an empty post.
+
+![hard deal 2026](screenshots/hard-deal.png)
+
+Expert mode deals the same board as hard, but posts hold only five rings, so there's no cap slot to park a ring in.
+
+![expert deal 2026](screenshots/expert-deal.png)
 
 ## compatibility
 
