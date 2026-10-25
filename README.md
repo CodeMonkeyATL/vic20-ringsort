@@ -9,10 +9,10 @@ Fifty rings in five colors are shuffled onto ten posts. Move rings one at a time
 - 10 posts and 50 rings (red, green, blue, yellow, cyan), shuffled anew for every game
 - one-key controls: a post's number lifts a ring, another post's number drops it
 - each post holds up to six rings; the sixth slot is the room you need to move
-- a post that holds five rings of one color locks, so a finished set can't be undone by accident
+- a post that holds five rings of one color locks, so a finished set can't be undone by accident; its base turns solid in the ring color and a ding-ding plays
 - a move readout (`MOVE 1 … TO 2`, `MOVE CANCELED`) plus "invalid move" and "solved!" messages
 - a flickering color block shows the shuffle at work while dealing
-- sound effects: dealing chatter, ring up and down, an invalid-move buzz, a cancel woosh and a win chime
+- sound effects: dealing chatter, ring up and down, an invalid-move buzz, a cancel woosh, a lock ding-ding and a win chime
 - runs on a stock VIC-20 with no memory expansion
 
 ## how to play
@@ -34,7 +34,7 @@ The game deals a new shuffled board when it starts.
 
 **Rules:**
 - A post holds at most six rings. Dropping onto a full post, or lifting from an empty one, shows "invalid move".
-- A post with exactly five rings of one color is **locked**. You can't lift from it, but you can park one extra ring on top and lift that ring off again later.
+- A post with exactly five rings of one color is **locked**, and its base turns from the white checker to solid in the ring color. You can't lift from it, but you can park one extra ring on top and lift that ring off again later; the base stays solid while it's parked.
 
 **Winning:** every post is locked, five rings of one color each.
 

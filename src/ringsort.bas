@@ -25,7 +25,8 @@
 400 pp=n:gosub4000:ift=1then395
 420 po%(pp,t-1)=po%(hp,0):po%(hp,0)=0:ifhp=nthen480
 430 pa=sb+19*22+12:gosub1000:print"to";n;:v=36875:f=240:e=190:s=-2:gosub5000
-440 gosub2000:pp=hp:hp=0:gosub2000
+440 gosub2000:gosub4100:iflthengosub5200
+445 pp=hp:hp=0:gosub2000
 450 pp=n:gosub4100:ifl=0thenreturn
 460 forpp=1to10:gosub4100:ifl=0thenreturn
 470 next:gosub1100:print"solved!";:gosub5100:return
@@ -46,7 +47,8 @@
 2040 ifpo%(pp,i)thenprint"{reverse on}";chr$(po%(pp,i));" ";b$;" {reverse off}":goto2070
 2050 ifi=0thenprint"   ":goto2070
 2060 print" {reverse on}{wht}";b$;"{reverse off} "
-2070 next:pa=pb+22*7:gosub1000:print"{reverse on}{wht}";b$;b$;b$;"{reverse off}":return
+2070 next:pa=pb+22*7:gosub1000:gosub4110:iflthenprint"{reverse on}";chr$(po%(pp,2));"   {reverse off}{wht}":return
+2080 print"{reverse on}{wht}";b$;b$;b$;"{reverse off}":return
 
 3000 print"{clr}";:forpp=1to10:gosub2000:next:gosub1100:poke198,0:return
 
@@ -54,13 +56,18 @@
 4030 t=t+1:ifpo%(pp,t)=0then4030
 4040 return
 
-4100 l=0:ifpo%(pp,1)<>0orpo%(pp,2)=0thenreturn
+4100 l=0:ifpo%(pp,1)thenreturn
+4110 l=0:ifpo%(pp,2)=0thenreturn
 4120 fori=3to6:ifpo%(pp,i)<>po%(pp,2)thenreturn
 4130 next:l=-1:return
 
 5000 fori=ftoesteps:pokev,i:next:pokev,0:return
 
 5100 v=36876:fori=1to4:pokev,195+i*12:forj=1to99:next:next:pokev,0:return
+
+5200 poke36876,230:v=36878:f=15:e=0:s=-1:gosub5000
+5210 poke36876,240:poke36878,15:forj=1to60:next:f=15:gosub5000
+5220 poke36876,0:poke36878,15:return
 
 10000 cl%(0)=28:cl%(1)=30:cl%(2)=31:cl%(3)=158:cl%(4)=159:forpp=1to10
 10050 r=int((pp-1)/5):c=pp-1-5*r:po%(pp,7)=sb+(1+r*9)*22+1+c*4:next:return

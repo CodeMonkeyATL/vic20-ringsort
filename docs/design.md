@@ -32,6 +32,7 @@ row 7   ###   base (never moves)
 ```
 
 - **Characters:** a ring is 3 cells: `{rvs on}<color> <checker> {rvs off}`. The pole and base use the checker glyph `chr$(230)` (`b$`) in white.
+- **Complete posts:** when slots 2-6 hold one color, the base is drawn as 3 reverse spaces in that color instead of the white checker, so the post looks like a filled vessel. The solid base ends with `{wht}`, so the text printed next (the move row, messages) stays white.
 - **Messages start at column 1,** aligned with the left edge of the posts.
 - **Row 19** is the move row: `MOVE N` when a ring is lifted from post N, `TO M` at column 12 when it's dropped on post M, and `MOVE CANCELED` when it's put back. A new lift clears the row. A new game or redraw clears the whole screen, including this row. Row 18 stays blank as a gap below the bottom posts' bases.
   - Dropping on a full post prints `TO M` in red (and "invalid move" on row 20). The ring stays lifted; the next valid drop overwrites the red text with a white `TO M`.
@@ -55,7 +56,10 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 **Rules expressed in the model:**
 - **Top ring:** the lowest non-zero index from 1 to 6. Routine 4000 scans up from index 1 and needs no bounds check: index 7 holds a screen address, which is never 0, so the scan always stops there at the latest. `t=7` means the post is empty.
 - **Drop target:** the index just above the top ring (`t-1`). It's legal only if `t>1`; `t=1` means the post is full.
-- **Locked:** slot 1 is empty and slots 2-6 all hold the same color. This is computed when needed (routine 4100), not stored, so it can't get out of sync with the board.
+- **Complete:** slots 2-6 all hold the same color (routine 4110). The base shows this.
+- **Locked:** complete, and slot 1 is empty (routine 4100, which falls into 4110). The lift rule and the win check use this.
+- Both are computed when needed, not stored, so they can't get out of sync with the board.
+- **Why the base follows "complete", not "locked":** parking a ring in a locked post's cap slot makes it unlocked (so that ring can be lifted again), but it stays complete. If the base followed the lock, it would switch to checker and back every time a ring is parked and lifted. A complete post also can't become incomplete: its slots 2-6 can only be lifted from when the cap slot is empty, and then the post is locked. So once a base turns solid, it stays solid until the next deal.
 
 ## Routines
 
@@ -67,19 +71,21 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 | 300 | post key: lift post `n`'s top ring, or drop onto `n` if a ring is lifted | `n` | |
 | 390 | print "invalid move" | | |
 | 395 | invalid drop: print `TO n` in red on the move row, then "invalid move" (390) | `n` | |
-| 400 | drop the lifted ring onto post `n`, redraw both posts, print `TO n`, check for a win | `n`, `hp` | |
+| 400 | drop the lifted ring onto post `n`, print `TO n`, redraw both posts (playing the lock sound if `n` just locked), check for a win | `n`, `hp` | |
 | 480 | the drop was a cancel (`n` = `hp`): print `MOVE CANCELED` | | |
 | 990 | quit: restore screen colors and blue text | | |
 | 1000 | move the cursor to screen address `pa` (KERNAL PLOT) | `pa` | |
 | 1100 | move the cursor to the start of the message row | | |
 | 1200 | clear the message row | | |
 | 1300 | clear the move row (19) and park the cursor at its start | | |
-| 2000 | draw post `pp`: rows 0-6 from `po%`, then the base | `pp` | |
+| 2000 | draw post `pp`: rows 0-6 from `po%`, then the base (solid if complete, checker otherwise) | `pp` | `l` is clobbered |
 | 3000 | clear the screen, draw all posts, discard keys typed meanwhile | | |
 | 4000 | find the top ring of post `pp` | `pp` | `t` |
-| 4100 | is post `pp` locked? | `pp` | `l` (-1/0) |
+| 4100 | is post `pp` locked? (cap slot empty, then falls into 4110) | `pp` | `l` (-1/0) |
+| 4110 | is post `pp` complete? (slots 2-6 one color) | `pp` | `l` (-1/0) |
 | 5000 | sound sweep: step register `v` from `f` to `e` by `s`, then poke `v` with 0 | `v`, `f`, `e`, `s` | |
 | 5100 | win chime: 4 rising notes on the high voice | | |
+| 5200 | lock sound: two bells on the high voice | | |
 | 10000 | one-time setup: color codes, post addresses | | |
 | 20000 | deal: fill posts in order, then shuffle | | |
 
@@ -101,8 +107,8 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 | `n` | post selected by a key (1-10) |
 | `hp` | post with a lifted ring (0 = none) |
 | `t` | top ring index (from 4000); swap temporary in the deal |
-| `l` | lock result from 4100 |
-| `j`, `a` | deal: random ring number, then its slot (`j`) and post (`a`). `j` is also the win chime's delay loop |
+| `l` | lock result from 4100, or complete result from 4110 |
+| `j`, `a` | deal: random ring number, then its slot (`j`) and post (`a`). `j` is also the delay loop of the win chime and the lock sound |
 | `v`, `f`, `e`, `s` | sound sweep (5000): register, from, end, step |
 
 `pa` through `b$` are created first, on line 1, because BASIC searches variables in creation order and these are read most often while drawing. `po%` is dimmed before `cl%` for the same reason: arrays are searched in creation order too.
@@ -116,6 +122,7 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
   - The shuffle runs in place in `po%`, so no separate array is needed.
   - **Progress block:** before the shuffle, `poke7690,160` puts a reverse space after "dealing..." (row 0, column 10). Each swap pokes its color RAM (38410) with `(jand7)or1`, using the random ring number `j`. Color RAM takes VIC color numbers 0-7, not the PETSCII codes in `po%`; `or1` keeps the result odd (white, cyan, green, yellow), so the block never turns black and vanishes.
 - **Win check:** only a drop that locks its destination post can finish the game, so 400 checks that post first and scans all 10 posts only if it just locked. The scan stops at the first post that isn't locked.
+- **Lock sound timing:** 440 redraws the destination post first, then checks its lock and plays the lock sound, and only then redraws the source post. So the solid base appears and the sound plays together. The lock check is repeated at 450 for the win check, because drawing the source post (2000) overwrites `l`. On the winning drop, the lock sound plays before the win chime.
 - **Redraws:** a move redraws only the posts it touches (routine 2000); `r` and a new game redraw everything (3000).
 - **Seeding:** `rnd(-ti)` at startup. In xvic, autostart takes the same time on every run, so the first deal can repeat between runs; on real hardware, the time spent typing `RUN` varies it.
 - **Keyboard buffer:** the KERNAL keeps up to 10 keys typed while the program is busy, and address 198 holds the count.
@@ -142,6 +149,7 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 | invalid move (lift or drop) | 390 | low 36874 | `f=150`, `e=130`, `s=-1` (falling buzz) |
 | cancel | 480-485 | noise 36877 at 250 | sweeps the **volume** 36878 from 15 to 0 by -1 (a short, airy fade), then restores it to 15 |
 | win | 5100 | high 36876 | notes `195+i*12` for `i`=1-4 (207, 219, 231, 243), each held by a 99-step delay loop |
+| lock ("ding-ding") | 5200-5220 | high 36876 | a bell at 230: the volume fades 15 to 0 by -1. Then a bell at 240: held at volume 15 for a 60-step delay loop, then the same fade. Then the voice goes off and the volume back to 15. Chosen by ear to sound unlike the lift and drop sweeps (middle voice) and the win chime (rising notes, no fade). A slower fade alone wasn't audible as longer; the hold is what makes the second bell ring out. |
 | deal | 20070-20150 | middle 36875 | `200+j` on every shuffle swap (random pitch), at volume 6 so it stays in the background; after the shuffle the voice goes off and the volume back to 15 |
 
 ## Memory
@@ -155,5 +163,6 @@ On an unexpanded VIC-20, program and variables share 3583 bytes.
 | 2026-10-24 | 1526 | ~1731 | keyboard flush after full draws |
 | 2026-10-24 | 1748 | ~1509 | move row messages (red `TO M` on an invalid drop), the dealing progress block, white "dealing..." |
 | 2026-10-24 | 2061 | ~1170 | sounds: ring up/down, invalid, cancel, win, deal (quieter and lower) |
+| 2026-10-25 | 2243 | 984 | solid base on complete posts, lock sound (measured: `?fre(0)` after a move and quit) |
 
 The arrays take 204 bytes (`po%` 185, `cl%` 19), and the 18 simple variables take 7 bytes each (126).
