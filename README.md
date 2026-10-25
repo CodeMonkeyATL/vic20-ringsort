@@ -11,13 +11,15 @@ Fifty rings in five colors are shuffled onto ten posts. Move rings one at a time
 - each post holds up to six rings; the sixth slot is the room you need to move
 - a post that holds five rings of one color locks, so a finished set can't be undone by accident; its base turns solid in the ring color and a ding-ding plays
 - a move readout (`MOVE 1 … TO 2`, `MOVE CANCELED`) plus "invalid move" and "solved!" messages
+- a live score on the top row: moves and a running timer, plus the session's best moves and best time
+- a splash screen; its keypress seeds the shuffle, so every launch gets a different board
 - a flickering color block shows the shuffle at work while dealing
 - sound effects: dealing chatter, ring up and down, an invalid-move buzz, a cancel woosh, a lock ding-ding and a win chime
 - runs on a stock VIC-20 with no memory expansion
 
 ## how to play
 
-The game deals a new shuffled board when it starts.
+Press a key on the title screen to deal a new shuffled board.
 
 | Key | Action |
 |---|---|
@@ -37,6 +39,8 @@ The game deals a new shuffled board when it starts.
 - A post with exactly five rings of one color is **locked**, and its base turns from the white checker to solid in the ring color. You can't lift from it, but you can park one extra ring on top and lift that ring off again later; the base stays solid while it's parked.
 
 **Winning:** every post is locked, five rings of one color each.
+
+**Score:** the top row counts your moves (each ring dropped onto another post) and the time since the board was dealt. The clock stops when you win, or at 99:59. Your best moves and best time this session show at the bottom in cyan; try to beat them.
 
 ## screenshots
 
