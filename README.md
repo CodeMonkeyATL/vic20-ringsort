@@ -10,7 +10,7 @@ Fifty rings in five colors are shuffled onto ten posts. Move rings one at a time
 - one-key controls: a post's number lifts a ring, another post's number drops it
 - each post holds up to six rings; the sixth slot is the room you need to move
 - a post that holds five rings of one color locks, so a finished set can't be undone by accident; its base turns solid in the ring color and a ding-ding plays
-- a move readout (`MOVE 1 … TO 2`, `MOVE CANCELED`) plus "invalid move" and "solved!" messages
+- a move readout (`FROM 1 … TO 2`, `MOVE CANCELED`) plus "invalid move" and "solved!" messages
 - a live score on the top row: moves and a running timer, plus the session's best moves and best time
 - a splash screen; its keypress seeds the shuffle, so every launch gets a different board
 - deal numbers: every board has a number (1-99999) shown at the bottom; type it in after `n` to replay a board or share it with a friend

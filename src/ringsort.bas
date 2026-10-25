@@ -21,7 +21,7 @@
 
 300 gosub1200:ifhpthen400
 330 pp=n:gosub4000:gosub4100:ift=7orlthen390
-350 po%(pp,0)=po%(pp,t):po%(pp,t)=0:hp=pp:gosub1300:print"move";n;
+350 po%(pp,0)=po%(pp,t):po%(pp,t)=0:hp=pp:gosub1300:print"from";n;
 360 v=36875:f=200:e=240:s=4:gosub5000:goto2000
 390 gosub1100:print"invalid move";:v=36874:f=150:e=130:s=-1:goto5000
 395 pa=430:gosub1000:print"{red}to";n;"{wht}";:goto390
