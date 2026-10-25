@@ -7,10 +7,17 @@
 140 ifk$=" "thenifhpthenn=hp:gosub300
 150 ifk$>="0"andk$<="9"thenn=val(k$)-10*(k$="0"):gosub300
 160 ifk$<>"n"then110
-170 gosub1100:print"new game? y/n";:wait198,255:getk$:ifk$="y"thengosub210
+170 gosub1100:print"new game? y/n";:wait198,255:getk$:ifk$="y"thengosub250:gosub210
 180 gosub1200:goto110
 
-210 t=rnd(-ti):gosub2500:tb=ti:return
+210 ifdn=0thent=rnd(-ti):t=rnd(1):dn=int(rnd(1)*99999)+1
+220 t=rnd(-dn):t=rnd(1):t=rnd(1):gosub2500:tb=ti:return
+
+250 gosub1200:gosub1100:print"deal #";:dn=0:j=0
+260 wait198,255:getk$:a=asc(k$):ifa=13thenreturn
+270 ifa=20andj>0thenj=j-1:dn=int(dn/10):printk$;
+280 ifa>47anda<58andj<5thenj=j+1:dn=dn*10+a-48:printk$;
+290 goto260
 
 300 gosub1200:ifhpthen400
 330 pp=n:gosub4000:gosub4100:ift=7orlthen390
@@ -58,7 +65,7 @@
 
 3000 print"{clr}";:forpp=1to10:gosub2000:next:poke198,0
 3100 pa=1:gosub1000:print"{wht}moves 000 time 00:00";:w=mv:a=7689:d=3:gosub6000
-3110 w=te:a=7700:gosub6200
+3110 w=te:a=7700:gosub6200:pa=485:gosub1000:print"deal";dn;
 3200 ifmb=0thenreturn
 3210 pa=463:gosub1000:print"{cyn}best  000      00:00{wht}";:w=mb:a=8151:d=3:gosub6000
 3220 w=tw:a=8162:goto6200
