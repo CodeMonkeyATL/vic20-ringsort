@@ -38,7 +38,7 @@ row 7   ###   base (never moves)
 - **Drawing a post:** one PLOT to the post origin, then each of rows 0-6 is printed with a trailing `{down}{left}{left}{left}`, which steps the cursor to the start of the next row. One PLOT per row was slower and cost more bytes.
 - **Complete posts:** when slots 2-6 hold one color, the base is drawn as 3 reverse spaces in that color instead of the white checker, so the post looks like a filled vessel. The solid base ends with `{wht}`, so the text printed next (the move row, messages) stays white.
 - **Messages start at column 1,** aligned with the left edge of the posts.
-- **Row 19** is the move row: `MOVE N` when a ring is lifted from post N, `TO M` at column 12 when it's dropped on post M, and `MOVE CANCELED` when it's put back. A new lift clears the row. A new game or redraw clears the whole screen, including this row. Row 18 stays blank as a gap below the bottom posts' bases.
+- **Row 19** is the move row: `FROM N` when a ring is lifted from post N, `TO M` at column 12 when it's dropped on post M, and `MOVE CANCELED` when it's put back. A new lift clears the row. A new game or redraw clears the whole screen, including this row. Row 18 stays blank as a gap below the bottom posts' bases.
   - Dropping on a full post prints `TO M` in red (and "invalid move" on row 20). The ring stays lifted; the next valid drop overwrites the red text with a white `TO M`.
   - The text is printed *before* the posts are redrawn, so the player sees the response at once; a post redraw takes a moment.
 - **Row 20** is the message row: "new game? y/n", "deal #" (with the digits typed so far), "invalid move", "solved!". On a win, the move row is cleared first.
