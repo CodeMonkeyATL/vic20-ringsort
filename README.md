@@ -2,16 +2,16 @@
 
 A color-sorting ring puzzle for the **unexpanded VIC-20**, written in Commodore BASIC V2.
 
-Fifty rings in five colors are shuffled onto ten posts. Move rings one at a time until every post holds five rings of a single color.
+Rings are shuffled onto ten posts. Move them one at a time until every post holds five rings of a single color. Three modes: **classic**, **hard** and **expert**.
 
 ## features
 
-- 10 posts and 50 rings (red, green, blue, yellow, cyan), shuffled anew for every game
+- three modes: classic (50 rings in 5 colors, any color on any), hard (40 rings in 4 colors, two empty posts, same color only) and expert (as hard, but posts hold only five rings)
 - one-key controls: a post's number lifts a ring, another post's number drops it
 - each post holds up to six rings; the sixth slot is the room you need to move
 - a post that holds five rings of one color locks, so a finished set can't be undone by accident; its base turns solid in the ring color and a ding-ding plays
 - a move readout (`FROM 1 … TO 2`, `MOVE CANCELED`) plus "invalid move" and "solved!" messages
-- a live score on the top row: moves and a running timer, plus the session's best moves and best time
+- a live score on the top row: moves and a running timer, plus the session's best moves and best time for each mode
 - a splash screen; its keypress seeds the shuffle, so every launch gets a different board
 - deal numbers: every board has a number (1-99999) shown at the bottom; type it in after `n` to replay a board or share it with a friend
 - a flickering color block shows the shuffle at work while dealing
@@ -20,28 +20,38 @@ Fifty rings in five colors are shuffled onto ten posts. Move rings one at a time
 
 ## how to play
 
-Press a key on the title screen to deal a new shuffled board.
+On the title screen, press `h` for hard, `e` for expert, or any other key for classic.
 
 | Key | Action |
 |---|---|
 | `1`-`9`, `0` | select post 1-9, or post 10 with `0` |
 | space | put the lifted ring back |
-| `n` | new game: asks y/n, then a deal number (Return alone = random deal) |
+| `n` | new game: asks `c/h/e` for the mode (any other key cancels), then a deal number (Return alone = random deal) |
 | `r` | redraw the screen |
 | `q` | quit |
 
 **Moving a ring:**
 - Press a post's key: its top ring lifts above the post.
-- Press another post's key: the ring drops onto that post. Any color can go on any color.
+- Press another post's key: the ring drops onto that post. In classic, any color can go on any color; in hard and expert, only onto the same color or an empty post.
 - To cancel, press the same post again or space.
 
 **Rules:**
-- A post holds at most six rings. Dropping onto a full post, or lifting from an empty one, shows "invalid move".
+- A post holds at most six rings (five in expert). Dropping onto a full post or a different color (hard, expert), or lifting from an empty one, shows "invalid move".
 - A post with exactly five rings of one color is **locked**, and its base turns from the white checker to solid in the ring color. You can't lift from it, but you can park one extra ring on top and lift that ring off again later; the base stays solid while it's parked.
 
-**Winning:** every post is locked, five rings of one color each.
+**Winning:** every post is locked (five rings of one color each) or empty.
 
-**Score:** the top row counts your moves (each ring dropped onto another post) and the time since the board was dealt. The clock stops when you win, or at 99:59. Your best moves and best time this session show at the bottom in cyan; try to beat them.
+**Modes:**
+
+| Mode | Rings | Start | Rule |
+|---|---|---|---|
+| classic | 50 in 5 colors | every post full | any color on any color; posts hold 6 |
+| hard | 40 in 4 colors (no blue) | posts 5 and 10 empty | same color or an empty post only; posts hold 6 |
+| expert | as hard | as hard | as hard, but posts hold only 5, so there's no spare cap slot |
+
+Every hard and expert deal we tested with a solver could be won. Hard is forgiving; in expert it's much easier to paint yourself into a corner.
+
+**Score:** the top row counts your moves (each ring dropped onto another post) and the time since the board was dealt. The clock stops when you win, or at 99:59. Your best moves and best time this session (for the mode you're playing) show at the bottom in cyan; try to beat them.
 
 ## screenshots
 
