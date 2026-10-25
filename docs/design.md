@@ -13,6 +13,8 @@ How `src/ringsort.bas` works. The source has no comments: they cost too much mem
 - **Capacity:** each post holds up to 6 rings. The sixth sits in the post's cap slot, and that slot is what makes the first move from a full board possible.
 - **Locked posts:** a post holding exactly 5 rings of one color is locked. You can't lift from it, but you can park a ring in its cap slot and lift that ring again later.
 - **Winning:** you win when all 10 posts are locked.
+- **Score:** moves (successful drops; cancels and invalid moves don't count) and time, both live on the top row. The timer starts when the board is drawn, freezes on a win, and stops at 99:59. The session's best moves and best time (tracked separately) show on row 21 once a game is won. They're lost on quit.
+- **Splash:** at launch a title screen waits for a key; that keypress seeds the random numbers.
 - **Other keys:** `n` new game (asks y/n first), `r` redraw, `q` quit.
 
 ## Screen layout
@@ -37,7 +39,10 @@ row 7   ###   base (never moves)
 - **Row 19** is the move row: `MOVE N` when a ring is lifted from post N, `TO M` at column 12 when it's dropped on post M, and `MOVE CANCELED` when it's put back. A new lift clears the row. A new game or redraw clears the whole screen, including this row. Row 18 stays blank as a gap below the bottom posts' bases.
   - Dropping on a full post prints `TO M` in red (and "invalid move" on row 20). The ring stays lifted; the next valid drop overwrites the red text with a white `TO M`.
   - The text is printed *before* the posts are redrawn, so the player sees the response at once; a post redraw takes about half a second.
-- **Row 20** is the message row: "new game? y/n", "invalid move", "solved!".
+- **Row 20** is the message row: "new game? y/n", "invalid move", "solved!". On a win, the move row is cleared first.
+- **Row 0** is the status row: `MOVES 000 TIME 00:00` from column 1 to 20 (moves digits at columns 7-9, minutes 16-17, seconds 19-20). Printed by 6300 on every full draw; after that only the digits are poked (6000).
+- **Row 21** is the session best, in cyan: `BEST  000      00:00`, digits in the same columns as row 0. Drawn only once a game has been won.
+- **Splash (7000):** "RINGSORT" one letter per ring color at row 9, column 7; "CODEMONKEYATL" at row 11, column 4; "PRESS A KEY" at row 20, column 5.
 - **While dealing,** row 0 shows "dealing..." followed by a block in column 10 that changes color on every swap of the shuffle.
 
 ## Data model
@@ -65,13 +70,14 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 
 | Line | Routine | In | Out |
 |---|---|---|---|
-| 1-2 | init: variables, arrays, seed, setup, first deal and draw | | |
-| 110 | main loop: `get` a key and dispatch | | |
-| 200 | new game: ask y/n on row 20, then deal and draw | | |
+| 1-2 | init: variables, arrays, setup, splash (which seeds), first deal and draw, start the timer | | |
+| 110 | main loop: `get` a key and dispatch; while no key, tick the timer (6100) | | |
+| 200 | new game: ask y/n on row 20; on `y` reseed, deal, draw, start the timer | | |
 | 300 | post key: lift post `n`'s top ring, or drop onto `n` if a ring is lifted | `n` | |
 | 390 | print "invalid move" | | |
 | 395 | invalid drop: print `TO n` in red on the move row, then "invalid move" (390) | `n` | |
-| 400 | drop the lifted ring onto post `n`, print `TO n`, redraw both posts (playing the lock sound if `n` just locked), check for a win | `n`, `hp` | |
+| 400 | drop the lifted ring onto post `n`, count the move (425), print `TO n`, redraw both posts (playing the lock sound if `n` just locked), check for a win | `n`, `hp` | |
+| 470 | win: freeze the timer, clear the move row, print "solved!", update and show the session best, play the chime | | |
 | 480 | the drop was a cancel (`n` = `hp`): print `MOVE CANCELED` | | |
 | 990 | quit: restore screen colors and blue text | | |
 | 1000 | move the cursor to screen address `pa` (KERNAL PLOT) | `pa` | |
@@ -79,13 +85,20 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 | 1200 | clear the message row | | |
 | 1300 | clear the move row (19) and park the cursor at its start | | |
 | 2000 | draw post `pp`: rows 0-6 from `po%`, then the base (solid if complete, checker otherwise) | `pp` | `l` is clobbered |
-| 3000 | clear the screen, draw all posts, discard keys typed meanwhile | | |
+| 3000 | clear the screen, draw all posts and the status rows (6300), discard keys typed meanwhile | | |
 | 4000 | find the top ring of post `pp` | `pp` | `t` |
 | 4100 | is post `pp` locked? (cap slot empty, then falls into 4110) | `pp` | `l` (-1/0) |
 | 4110 | is post `pp` complete? (slots 2-6 one color) | `pp` | `l` (-1/0) |
 | 5000 | sound sweep: step register `v` from `f` to `e` by `s`, then poke `v` with 0 | `v`, `f`, `e`, `s` | |
 | 5100 | win chime: 4 rising notes on the high voice | | |
 | 5200 | lock sound: two bells on the high voice | | |
+| 6000 | poke `w` as `d` digits, right-aligned so the last digit is at screen address `a` | `w`, `d`, `a` | `a` moves left `d` cells |
+| 6100 | timer tick: return if frozen; else compute elapsed seconds, stop at 99:59, and redraw if the second changed (falls into 6200) | | `te` |
+| 6110 | the same without the frozen check (the win calls it for the final time) | | `te` |
+| 6200 | show `w` seconds as mm:ss, the last seconds digit at `a` | `w`, `a` | |
+| 6300 | draw the status row (row 0), then fall into 6400 | | |
+| 6400 | draw the session best (row 21), if a game has been won | | |
+| 7000 | splash screen: wait for a key, then seed `rnd` from `ti` | | |
 | 10000 | one-time setup: color codes, post addresses | | |
 | 20000 | deal: fill posts in order, then shuffle | | |
 
@@ -108,7 +121,11 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 | `hp` | post with a lifted ring (0 = none) |
 | `t` | top ring index (from 4000); swap temporary in the deal |
 | `l` | lock result from 4100, or complete result from 4110 |
-| `j`, `a` | deal: random ring number, then its slot (`j`) and post (`a`). `j` is also the delay loop of the win chime and the lock sound |
+| `j`, `a` | deal: random ring number, then its slot (`j`) and post (`a`). `j` is also the delay loop of the win chime and the lock sound; `a` is also 6000's screen address |
+| `mv`, `mb` | moves this game; session best moves (0 = no win yet) |
+| `tb`, `te`, `tw` | timer: `ti` when the board was drawn; elapsed seconds last shown (the final time after a win); session best time in seconds |
+| `wn` | timer state: 0 running, -1 frozen by a win, 1 stopped at 99:59 |
+| `w`, `d`, `q`, `m` | 6000/6200: value to show, digit count, quotient temporary, minutes |
 | `v`, `f`, `e`, `s` | sound sweep (5000): register, from, end, step |
 
 `pa` through `b$` are created first, on line 1, because BASIC searches variables in creation order and these are read most often while drawing. `po%` is dimmed before `cl%` for the same reason: arrays are searched in creation order too.
@@ -124,7 +141,12 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 - **Win check:** only a drop that locks its destination post can finish the game, so 400 checks that post first and scans all 10 posts only if it just locked. The scan stops at the first post that isn't locked.
 - **Lock sound timing:** 440 redraws the destination post first, then checks its lock and plays the lock sound, and only then redraws the source post. So the solid base appears and the sound plays together. The lock check is repeated at 450 for the win check, because drawing the source post (2000) overwrites `l`. On the winning drop, the lock sound plays before the win chime.
 - **Redraws:** a move redraws only the posts it touches (routine 2000); `r` and a new game redraw everything (3000).
-- **Seeding:** `rnd(-ti)` at startup. In xvic, autostart takes the same time on every run, so the first deal can repeat between runs; on real hardware, the time spent typing `RUN` varies it.
+- **Seeding:** `rnd(-ti)` seeds from the jiffy clock, so the seed is only as varied as the moment it's taken. Autostart resets the machine and reaches line 2 at almost the same `ti` every time (157 or 158 jiffies, measured in xvic), so seeding at startup gave the same first board on nearly every launch, and `rnd(1)` then repeated the same series of boards. Seeding twice (`rnd(-ti)`, then `rnd(-rnd(1)*1000)`) doesn't help: the same input still gives the same output. So the seed is taken when a human presses a key: the splash (7000) seeds on its keypress, and each new game reseeds on its `y` (230).
+- **The live timer:** there's no interrupt code of our own. The KERNAL's interrupt already increments the jiffy clock `ti` 60 times a second.
+  - The main loop's idle `get` loop calls 6100 on every pass. It computes the elapsed seconds `int((ti-tb)/60)` and redraws only when they change, so the cost is one calculation per pass.
+  - During sounds and redraws the display doesn't update, but the clock keeps counting, and the next idle pass catches up. The time is always computed from `ti`, so it never drifts.
+  - The digits are poked into screen memory (screen code 48 + digit) rather than printed with `str$()`. That makes no string garbage, so no garbage-collection pause, and it doesn't move the cursor. The row was printed once in white, so the digit cells' color RAM is already white.
+  - **Limits:** elapsed time is clamped to 99:59 (5999 seconds), and the timer stops there (`wn=1`); play continues. A negative elapsed time, from `ti` wrapping 24 hours after power-on, is clamped the same way instead of poking an illegal value. The win takes its final time through the same clamp (6110), so the recorded best always matches the display.
 - **Keyboard buffer:** the KERNAL keeps up to 10 keys typed while the program is busy, and address 198 holds the count.
   - The full-screen draw (3000) ends with `poke198,0`, which discards keys typed during the deal or an `r` redraw, so they can't make moves on a board the player hasn't seen yet.
   - Move redraws don't flush: there, type-ahead is wanted (a quick `1` then `2` should lift and drop).
@@ -164,5 +186,6 @@ On an unexpanded VIC-20, program and variables share 3583 bytes.
 | 2026-10-24 | 1748 | ~1509 | move row messages (red `TO M` on an invalid drop), the dealing progress block, white "dealing..." |
 | 2026-10-24 | 2061 | ~1170 | sounds: ring up/down, invalid, cancel, win, deal (quieter and lower) |
 | 2026-10-25 | 2243 | 984 | solid base on complete posts, lock sound (measured: `?fre(0)` after a move and quit) |
+| 2026-10-25 | 2932 | 239 | score: moves, live timer, session best; splash screen; keypress seeding (measured the same way; not tightened) |
 
 The arrays take 204 bytes (`po%` 185, `cl%` 19), and the 18 simple variables take 7 bytes each (126).

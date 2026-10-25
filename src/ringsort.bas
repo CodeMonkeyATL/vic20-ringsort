@@ -1,7 +1,7 @@
 1 pa=0:of=0:yy=0:xx=0:sb=7680:pp=0:pb=0:i=0:b$=chr$(230):dimpo%(10,7),cl%(4)
-2 r=rnd(-ti):poke36879,12:poke36878,15:gosub10000:gosub20000:gosub3000
+2 poke36879,12:poke36878,15:gosub10000:gosub7000:gosub20000:gosub3000:tb=ti
 
-110 getk$:ifk$=""then110
+110 getk$:ifk$=""thengosub6100:goto110
 120 ifk$="n"thengosub200:goto110
 130 ifk$="r"thengosub3000:goto110
 140 ifk$="q"then990
@@ -11,7 +11,7 @@
 
 200 gosub1100:print"new game? y/n";
 220 getk$:ifk$=""then220
-230 ifk$="y"thengosub20000:gosub3000:return
+230 ifk$="y"thenr=rnd(-ti):gosub20000:gosub3000:tb=ti:return
 240 gosub1200:return
 
 300 gosub1200:ifhpthen400
@@ -24,12 +24,17 @@
 
 400 pp=n:gosub4000:ift=1then395
 420 po%(pp,t-1)=po%(hp,0):po%(hp,0)=0:ifhp=nthen480
+425 mv=mv+1:w=mv:a=7689:d=3:gosub6000
 430 pa=sb+19*22+12:gosub1000:print"to";n;:v=36875:f=240:e=190:s=-2:gosub5000
 440 gosub2000:gosub4100:iflthengosub5200
 445 pp=hp:hp=0:gosub2000
 450 pp=n:gosub4100:ifl=0thenreturn
 460 forpp=1to10:gosub4100:ifl=0thenreturn
-470 next:gosub1100:print"solved!";:gosub5100:return
+470 next:gosub6110:wn=-1
+472 gosub1300:gosub1100:print"solved!";
+475 ifmb=0ormv<mbthenmb=mv
+476 iftw=0orte<twthentw=te
+478 gosub6400:gosub5100:return
 480 gosub1300:print"move canceled";:poke36877,250:v=36878:f=15:e=0:s=-1:gosub5000
 485 poke36877,0:poke36878,15:gosub2000:hp=0:return
 
@@ -50,7 +55,7 @@
 2070 next:pa=pb+22*7:gosub1000:gosub4110:iflthenprint"{reverse on}";chr$(po%(pp,2));"   {reverse off}{wht}":return
 2080 print"{reverse on}{wht}";b$;b$;b$;"{reverse off}":return
 
-3000 print"{clr}";:forpp=1to10:gosub2000:next:gosub1100:poke198,0:return
+3000 print"{clr}";:forpp=1to10:gosub2000:next:gosub6300:gosub1100:poke198,0:return
 
 4000 t=0
 4030 t=t+1:ifpo%(pp,t)=0then4030
@@ -69,6 +74,27 @@
 5210 poke36876,240:poke36878,15:forj=1to60:next:f=15:gosub5000
 5220 poke36876,0:poke36878,15:return
 
+6000 fori=1tod:q=int(w/10):pokea,48+w-10*q:w=q:a=a-1:next:return
+
+6100 ifwnthenreturn
+6110 w=int((ti-tb)/60):ifw<0orw>5999thenw=5999:wn=1
+6120 ifw=tethenreturn
+6130 te=w:a=7700
+6200 m=int(w/60):w=w-60*m:d=2:gosub6000:w=m:a=a-1:goto6000
+
+6300 pa=7681:gosub1000:print"{wht}moves 000 time 00:00";:w=mv:a=7689:d=3:gosub6000
+6310 w=te:a=7700:gosub6200
+6400 ifmb=0thenreturn
+6410 pa=8143:gosub1000:print"{cyn}best  000      00:00{wht}";:w=mb:a=8151:d=3:gosub6000
+6420 w=tw:a=8162:goto6200
+
+7000 print"{clr}";:pa=sb+205:gosub1000
+7010 print"{red}r{grn}i{blu}n{yel}g{cyn}s{red}o{grn}r{blu}t"
+7020 pa=sb+246:gosub1000:print"{wht}codemonkeyatl":pa=sb+445:gosub1000:print"press a key"
+7030 poke198,0
+7040 getk$:ifk$=""then7040
+7050 r=rnd(-ti):return
+
 10000 cl%(0)=28:cl%(1)=30:cl%(2)=31:cl%(3)=158:cl%(4)=159:forpp=1to10
 10050 r=int((pp-1)/5):c=pp-1-5*r:po%(pp,7)=sb+(1+r*9)*22+1+c*4:next:return
 
@@ -77,4 +103,4 @@
 20080 forpp=10to1step-1:fori=6to2step-1
 20120 j=int(rnd(1)*(pp*5+i-6))+1:poke38410,(jand7)or1:poke36875,200+j
 20130 a=int((j-1)/5)+1:j=j-5*a+6:t=po%(pp,i):po%(pp,i)=po%(a,j):po%(a,j)=t:next:next
-20150 poke36875,0:poke36878,15:return
+20150 poke36875,0:poke36878,15:mv=0:wn=0:te=0:return
