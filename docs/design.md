@@ -42,7 +42,7 @@ row 7   ###   base (never moves)
 - **Row 20** is the message row: "new game? y/n", "invalid move", "solved!". On a win, the move row is cleared first.
 - **Row 0** is the status row: `MOVES 000 TIME 00:00` from column 1 to 20 (moves digits at columns 7-9, minutes 16-17, seconds 19-20). Printed by 6300 on every full draw; after that only the digits are poked (6000).
 - **Row 21** is the session best, in cyan: `BEST  000      00:00`, digits in the same columns as row 0. Drawn only once a game has been won.
-- **Splash (7000):** "RINGSORT" one letter per ring color at row 9, column 7; "CODEMONKEYATL" at row 11, column 4; "PRESS A KEY" at row 20, column 5.
+- **Splash (7000):** "RINGSORT" one letter per ring color at row 6, column 7 (purple instead of blue, which is hard to read on black); "CODEMONKEYATL" at row 8, column 4; "PRESS A KEY" at row 20, column 5.
 - **While dealing,** row 0 shows "dealing..." followed by a block in column 10 that changes color on every swap of the shuffle.
 
 ## Data model

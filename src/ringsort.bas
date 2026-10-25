@@ -88,9 +88,9 @@
 6410 pa=8143:gosub1000:print"{cyn}best  000      00:00{wht}";:w=mb:a=8151:d=3:gosub6000
 6420 w=tw:a=8162:goto6200
 
-7000 print"{clr}";:pa=sb+205:gosub1000
-7010 print"{red}r{grn}i{blu}n{yel}g{cyn}s{red}o{grn}r{blu}t"
-7020 pa=sb+246:gosub1000:print"{wht}codemonkeyatl":pa=sb+445:gosub1000:print"press a key"
+7000 print"{clr}";:pa=sb+139:gosub1000
+7010 print"{red}r{grn}i{pur}n{yel}g{cyn}s{red}o{grn}r{pur}t"
+7020 pa=sb+180:gosub1000:print"{wht}codemonkeyatl":pa=sb+445:gosub1000:print"press a key"
 7030 poke198,0
 7040 getk$:ifk$=""then7040
 7050 r=rnd(-ti):return
