@@ -34,15 +34,16 @@ The screen is 22×23 characters; screen RAM starts at 7680. The program passes c
 
 ```
 row 0   rrr   hover: the lifted ring, or blank
-row 1    #    cap slot: pole top, or a 6th ring
+row 1    #    cap slot: pole top, or a 6th ring (blank in expert)
 row 2   rrr   ring slots 2-6, stacked on the base
 ...
 row 6   rrr
 row 7   ###   base (never moves)
 ```
 
-- **Characters:** a ring is 3 cells: `{rvs on}<color> <checker> {rvs off}`. The pole and base use the checker glyph in white, written in the strings as `{CBM-+}` (PETSCII 166; 230 is the same glyph). It sits inside the string literals, so it costs 1 byte per use and needs no variable.
+- **Characters:** a ring is 3 cells: `{rvs on}<color> <checker> {rvs off}`, the checker being the post running through it. A lifted ring (the hover row) has no post through it, so it's drawn solid: 2040 picks the middle cell with `chr$(32-134*(i>0))`, a space (32) for the hover row and the checker (166) on the post. The pole and base use the checker glyph in white, written in the strings as `{CBM-+}` (PETSCII 166; 230 is the same glyph). It sits inside the string literals, so it costs 1 byte per use and needs no variable.
 - **Drawing a post:** one PLOT to the post origin, then each of rows 0-6 is printed with a trailing `{down}{left}{left}{left}`, which steps the cursor to the start of the next row. One PLOT per row was slower and cost more bytes.
+- **Expert has no visible cap:** its posts hold only 5 rings, so the cap row is drawn blank instead of as the pole top (2050: `i=0or(i=1andmd=2)`). A full post then ends at its top ring, and an empty post's pole starts one row lower. A half-checkerboard (168) was tried first, but printed normally its checker is one pixel out of step with the reversed checker of the pole (an inverted checkerboard is the same pattern shifted by one pixel), and printed reversed its blank half turns solid white.
 - **Complete posts:** when slots 2-6 hold one color, the base is drawn as 3 reverse spaces in that color instead of the white checker, so the post looks like a filled vessel. The solid base ends with `{wht}`, so the text printed next (the move row, messages) stays white.
 - **Messages start at column 1,** aligned with the left edge of the posts.
 - **Row 19** is the move row: `FROM N` when a ring is lifted from post N, `TO M` at column 12 when it's dropped on post M, and `MOVE CANCELED` when it's put back. A new lift clears the row. A new game or redraw clears the whole screen, including this row. Row 18 stays blank as a gap below the bottom posts' bases.
@@ -97,7 +98,7 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 | 1100 | move the cursor to the start of the message row | | |
 | 1200 | clear the message row and leave the cursor at its start (ends with `goto1100`) | | |
 | 1300 | clear the move row (19) and park the cursor at its start | | |
-| 2000 | draw post `pp`: rows 0-6 from `po%` (each row's string, then the shared `{down}{left}{left}{left}` at 2070), then the base (solid if complete, checker otherwise) | `pp` | `l` is clobbered |
+| 2000 | draw post `pp`: rows 0-6 from `po%` (a ring, solid in the hover row; blanks for an empty hover row, and in expert for the cap row, at 2050; otherwise the pole; each row's string, then the shared `{down}{left}{left}{left}` at 2070), then the base (solid if complete, checker otherwise) | `pp` | `l` is clobbered |
 | 2400 | map ring number `j` to its post `a` and slot `j` (posts 5 and 10 skipped when `md>0`) | `j`, `md` | `a`, `j` |
 | 2500 | deal for mode `md`: clear all posts, fill in order, then shuffle; falls into 3000 | `md` | |
 | 3000 | clear the screen, draw all posts, discard keys typed meanwhile; falls into 3100 | | |
@@ -215,5 +216,7 @@ On an unexpanded VIC-20, program and variables share 3583 bytes.
 | 2026-10-25 | 2817 | 435 | deal numbers: random 1-99999 or typed after `n`/`y`, shown on row 22 (entry ~150 bytes, seeding ~80 including the `rnd` discards, display ~25) |
 | 2026-10-25 | 3123 | ~82 | modes: classic, hard, expert (deal +77 bytes, drop rules +52, row 22 label +48, per-mode bests +59, mode keys +66, win with empty posts +12); not tightened. (75 was measured after a direct-mode test had added a variable) |
 | 2026-10-25 | 3061 | 158 | third tightening: 2 fewer variables (the deal reuses `n` and `d`), only `i` pre-created, shared digit routine 3300 for rows 0 and 21, one `{down}{left}{left}{left}` per post row, 5000 restores the volume, game resets moved to 220 so the deal's last lines join, `sgn(md)` in the deal (measured: `?fre(0)` right after quitting) |
+| 2026-10-25 | 3072 | 147 | expert draws its cap row blank (11 bytes) |
+| 2026-10-25 | 3086 | 133 | the lifted (hover) ring is drawn solid, without the checker (14 bytes) |
 
 `po%` takes 185 bytes, `mb%` and `tw%` 13 each, and the 22 simple variables take 7 bytes each (154).

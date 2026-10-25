@@ -52,8 +52,8 @@
 1300 pa=419:gosub1000:print"                  ";:goto1000
 
 2000 pa=po%(pp,7):gosub1000:fori=0to6
-2040 ifpo%(pp,i)thenprint"{reverse on}";chr$(po%(pp,i));" {CBM-+} {reverse off}";:goto2070
-2050 ifi=0thenprint"   ";:goto2070
+2040 ifpo%(pp,i)thenprint"{reverse on}"chr$(po%(pp,i))" "chr$(32-134*(i>0))" {reverse off}";:goto2070
+2050 ifi=0or(i=1andmd=2)thenprint"   ";:goto2070
 2060 print" {reverse on}{wht}{CBM-+}{reverse off} ";
 2070 print"{down}{left}{left}{left}";:next:gosub4110:iflthenprint"{reverse on}";chr$(po%(pp,2));"   {reverse off}{wht}":return
 2080 print"{reverse on}{wht}{CBM-+}{CBM-+}{CBM-+}{reverse off}":return
