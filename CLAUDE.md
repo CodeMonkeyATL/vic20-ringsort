@@ -11,7 +11,9 @@ A color-sorting ring puzzle for an **unexpanded VIC-20**, written in Commodore B
 - **Build + run (what the IDE Build does):** `powershell -NoProfile -ExecutionPolicy Bypass -File buildtools/build-and-run.ps1 -BasFile src/<name>.bas`
   - Runs `petcat.exe -w2 -l 1001 -o prgs/<name> src/<name>.bas`, then autostarts the PRG in xvic. If xvic is already running, it's sent over the remote monitor (127.0.0.1:6510); otherwise xvic is started with `-memory none -keymap 0 -remotemonitor`.
   - `petcat.exe` and `xvic.exe` must be on PATH (VICE 3.10 GTK3). Copies of petcat/c1541 are also in `tools/`.
-- **See the screen:** `powershell -NoProfile -ExecutionPolicy Bypass -File buildtools/screenshot.ps1` saves a PNG to `screenshots/temp/` (gitignored). The `/screenshot` skill wraps this. Don't send raw monitor commands to xvic: sending `x`, or disconnecting before reading the reply, wedges the remote monitor.
+- **See the screen:** `powershell -NoProfile -ExecutionPolicy Bypass -File buildtools/screenshot.ps1` saves a PNG to `screenshots/temp/` (gitignored). The `/screenshot` skill wraps this.
+- **Press keys:** `powershell -NoProfile -ExecutionPolicy Bypass -File buildtools/keys.ps1 -Keys "<keys>"` types into the running program through the monitor's `keybuf` command. Use it freely for testing, e.g. play moves and screenshot the result. Plain characters are verified; `keybuf` escapes such as `\n` aren't.
+- **Remote monitor:** talk to xvic only through these scripts (`build-and-run.ps1` autostart, `screenshot.ps1`, `keys.ps1`). Never send `x`, and always read the reply before disconnecting; otherwise the remote monitor wedges.
 - **Lint:** `buildtools/check-basic.ps1 -BasFile <file>` checks a source file against the guidelines: missing `goto`/`gosub`/`then` targets (including `on … goto` lists), lines over 88 characters as listed, spaces outside strings and `rem`s, and line numbers that are unnumbered, duplicated or out of order. `build-and-run.ps1` runs it before petcat; it only prints warnings and never stops the build. `ringsort.bas` should stay at 0 warnings; `prototype.bas` and `randomcolors.bas` are old experiments and have warnings.
 - There are no tests. Verify changes by building and looking at the emulator screen.
 - **IDE tasks:** the user works in Visual Studio (Open Folder). VS reads only `.vs/tasks.vs.json`, which is gitignored; `buildtools/tasks.vs.json` is the committed copy (and `buildtools/tasks.json` is the VS Code equivalent). Keep the copies in sync. Every VS Build prints a harmless "The system cannot find the file specified." that comes from VS itself, not the script.
@@ -22,7 +24,14 @@ A color-sorting ring puzzle for an **unexpanded VIC-20**, written in Commodore B
 - `ringsort.bas`: the actual program (formerly `singlepost.bas`). It draws all 10 posts from a data model; this is where development happens.
 - `prototype.bas`: an earlier hard-coded PRINT prototype of the board.
 - `randomcolors.bas`: an earlier shuffle/debug experiment.
-- `docs/cheatsheet.md`: reference notes (petcat tokens, VIC color codes, color registers).
+- `colortest.bas`: test screen that verifies the cheatsheet's color tables (color codes via `chr$()` and petcat tokens, color RAM values, and that the C64-only codes do nothing). Waits for a key.
+- `glyphtest.bas`: verifies the cheatsheet's graphics glyph table in three pages: the old table's claims, every graphic glyph (96-127, 160-191, and their repeats at 192-255), and two box styles. Any key advances.
+- The test programs follow the guidelines (0 lint warnings) but aren't tightened; they keep their `rem`s.
+
+## Docs
+
+- `docs/design.md`: how `ringsort.bas` works, including its sound design. Keep it in sync with code changes.
+- `docs/cheatsheet.md`: general VIC-20 reference (petcat tokens, colors, graphics glyphs, color and sound registers, sound patterns). It's meant to be shared with other projects, so keep it free of RingSort specifics; RingSort details go in `design.md`. Some overlap between the two is fine. Facts in it are verified in xvic, with the test programs and screenshots in `screenshots/`.
 
 ## Program architecture (`ringsort.bas`)
 
