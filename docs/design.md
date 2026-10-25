@@ -84,7 +84,7 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 | 1-2 | init: hot variables, `po%`, volume and colors, post offsets `po%(pp,7)`; then the splash and the first game (210) | | |
 | 110 | main loop: `get` a key and dispatch; while no key, tick the timer (6100). Only `n` (tested last, at 160) ends with `goto110`; the other branches fall through the remaining tests, which can't match their key | | |
 | 170 | new game prompt: ask `c/h/e` on row 20; `j` becomes 0, -1 or -2 for `c`, `h`, `e`. On one of those keys (175) set `md=-j`, read a deal number (250) and start a game (210); clear the prompt either way | | `md` |
-| 210 | start a game: if `dn` is 0, seed from `ti` and pick a random deal number; then (220) seed `rnd(-dn)`, deal and draw (2500), start the timer | `dn` | `dn` |
+| 210 | start a game: if `dn` is 0, seed from `ti` and pick a random deal number; then (220) reset the moves and timer, seed `rnd(-dn)`, deal and draw (2500), start the timer | `dn` | `dn` |
 | 250 | read a deal number on the message row: digits (up to 5) are echoed, DEL erases one, other keys are ignored, Return ends. Nothing typed (or 0) leaves `dn`=0, which 210 turns into a random deal | | `dn` |
 | 300 | post key: lift post `n`'s top ring, or drop onto `n` if a ring is lifted | `n` | |
 | 390 | print "invalid move" | | |
@@ -95,18 +95,19 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 | 990 | quit: restore screen colors and blue text | | |
 | 1000 | move the cursor to screen offset `pa` (KERNAL PLOT; `poke` drops the fraction of `pa/22`) | `pa` | |
 | 1100 | move the cursor to the start of the message row | | |
-| 1200 | clear the message row | | |
+| 1200 | clear the message row and leave the cursor at its start (ends with `goto1100`) | | |
 | 1300 | clear the move row (19) and park the cursor at its start | | |
-| 2000 | draw post `pp`: rows 0-6 from `po%`, then the base (solid if complete, checker otherwise) | `pp` | `l` is clobbered |
+| 2000 | draw post `pp`: rows 0-6 from `po%` (each row's string, then the shared `{down}{left}{left}{left}` at 2070), then the base (solid if complete, checker otherwise) | `pp` | `l` is clobbered |
 | 2400 | map ring number `j` to its post `a` and slot `j` (posts 5 and 10 skipped when `md>0`) | `j`, `md` | `a`, `j` |
 | 2500 | deal for mode `md`: clear all posts, fill in order, then shuffle; falls into 3000 | `md` | |
 | 3000 | clear the screen, draw all posts, discard keys typed meanwhile; falls into 3100 | | |
-| 3100 | draw the status row (row 0) and the deal row (row 22, with the mode label at 3120), then fall into 3200 | | |
-| 3200 | draw the current mode's session best (row 21), if a game in that mode has been won | `md` | |
+| 3100 | draw the status row (row 0; digits via 3300) and the deal row (row 22, with the mode label at 3120), then fall into 3200 | | |
+| 3200 | draw the current mode's session best (row 21), if a game in that mode has been won; falls into 3300 | `md` | |
+| 3300 | poke a moves/time pair: `w` as 3 digits ending at `a`, then `j` seconds as mm:ss ending 14 cells further right (6000 leaves `a` 3 cells left). Rows 0 and 21 share it | `w`, `j`, `a` | |
 | 4000 | find the top ring of post `pp` | `pp` | `t` |
 | 4100 | is post `pp` locked? (cap slot empty, then falls into 4110) | `pp` | `l` (-1/0) |
 | 4110 | is post `pp` complete? (slots 2-6 one color) | `pp` | `l` (-1/0) |
-| 5000 | sound sweep: step register `v` from `f` to `e` by `s`, then poke `v` with 0 | `v`, `f`, `e`, `s` | |
+| 5000 | sound sweep: step register `v` from `f` to `e` by `s`, then poke `v` with 0 and set the volume back to 15 (so volume sweeps need no restore of their own) | `v`, `f`, `e`, `s` | |
 | 5100 | win chime: 4 rising notes on the high voice | | |
 | 5200 | lock sound: two bells on the high voice | | |
 | 6000 | poke `w` as `d` digits, right-aligned so the last digit is at screen address `a` | `w`, `d`, `a` | `a` moves left `d` cells |
@@ -125,21 +126,20 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 | `po%(10,7)` | posts (see Data model) |
 | `md` | mode: 0 classic, 1 hard, 2 expert |
 | `mb%(2)`, `tw%(2)` | session best moves and time, one per mode (0 = no win yet in that mode). Integer arrays: moves stay under 1000 and times under 6000 |
-| `k`, `r` | deal: ring number (loop), number of rings (50, or 40 when `md>0`) |
 | `k$` | key read by `get` |
-| `n` | post selected by a key (1-10) |
+| `n` | post selected by a key (1-10); in the deal, the ring number (loop) |
 | `dn` | deal number (1-99999; 0 = pick a random one) |
 | `hp` | post with a lifted ring (0 = none) |
 | `t` | top ring index (from 4000); swap temporary in the deal; 6000's quotient; the dummy result of `rnd(-ti)` |
 | `l` | lock result from 4100, or complete result from 4110 |
-| `j`, `a` | deal: random ring number, then its slot (`j`) and post (`a`). `j` is also the delay loop of the win chime and the lock sound, 6200's minutes and 250's digit count; `a` is also 6000's screen address and 250's key code |
+| `j`, `a` | deal: random ring number, then its slot (`j`) and post (`a`). `j` is also the delay loop of the win chime and the lock sound, 6200's minutes, 250's digit count and the time handed to 3300; `a` is also 6000's screen address and 250's key code |
 | `mv` | moves this game |
 | `tb`, `te` | timer: `ti` when the board was drawn; elapsed seconds last shown (the final time after a win) |
 | `wn` | timer state: 0 running, -1 frozen by a win, 1 stopped at 99:59 |
-| `w`, `d` | 6000/6200: value to show, digit count |
+| `w`, `d` | 6000/6200: value to show, digit count. `d` is also the deal's ring count (50, or 40 when `md>0`); every 6000 call sets `d` first |
 | `v`, `f`, `e`, `s` | sound sweep (5000): register, from, end, step |
 
-`pa`, `pp` and `i` are created first, on line 1, because BASIC searches variables in creation order and these are read most often while drawing.
+BASIC searches variables in creation order, so the ones read most often while drawing should be created first: line 1 creates `i`, line 2's loop `pp`, and the splash `pa`, before any other variable.
 
 The temporaries `t`, `j` and `i` are shared between routines that never run inside each other's use of them: 6000 runs from the move code only after 420 is done with `t`, and 6200 runs only from the idle loop, the win and the full draw, none of which is inside the deal's or a sound's use of `j`.
 
@@ -147,9 +147,9 @@ The temporaries `t`, `j` and `i` are shared between routines that never run insi
 
 - **Key to post:** `n=val(k$)-10*(k$="0")`. A comparison is -1 when true, so key `0` gives 0+10=10, and keys `1`-`9` give 1-9.
 - **The deal:**
-  - It clears every post, fills the rings in order (each pair of posts gets one color), then shuffles. Rings are numbered `k` from 1 to `r` (50, or 40 when `md>0`). Routine 2400 maps a ring number `j` to its post and slot: post `a=int((j-1)/5)+1`, slot `j-5*a+6`; when `md>0`, `a=a-int((a-1)/4)*(md>0)` then shifts posts 5-8 to 6-9, so posts 5 and 10 stay empty.
-  - Ring `k`'s color is `asc(mid$("{red}{grn}{blu}{yel}{cyn}{red}{grn}{yel}{cyn}",(k-1)/10+1-5*(md>0)))`: `mid$` drops the fraction of its position, and `md>0` moves the start to the four colors without blue. Each `mid$` leaves a 1-byte string as garbage, 40-50 per deal; with so few live strings, garbage collection is quick and happens off the gameplay path.
-  - The shuffle is Fisher-Yates over the rings, from `k=r` down to 1. Each ring swaps with a random ring `j` from 1 to `k`. Both positions come from 2400.
+  - It clears every post, fills the rings in order (each pair of posts gets one color), then shuffles. Rings are numbered `n` from 1 to `d` (50, or 40 when `md>0`). Routine 2400 maps a ring number `j` to its post and slot: post `a=int((j-1)/5)+1`, slot `j-5*a+6`; then `a=a+int(a/5)*sgn(md)` shifts posts 5-8 to 6-9 when `md>0`, so posts 5 and 10 stay empty.
+  - Ring `n`'s color is `asc(mid$("{red}{grn}{blu}{yel}{cyn}{red}{grn}{yel}{cyn}",(n-1)/10+1+5*sgn(md)))`: `mid$` drops the fraction of its position, and `md>0` (`sgn(md)`=1) moves the start to the four colors without blue. Each `mid$` leaves a 1-byte string as garbage, 40-50 per deal; with so few live strings, garbage collection is quick and happens off the gameplay path.
+  - The shuffle is Fisher-Yates over the rings, from `n=d` down to 1. Each ring swaps with a random ring `j` from 1 to `n`. Both positions come from 2400.
   - **Classic deals didn't change** when modes were added: for `md=0` the fill, the order of `rnd` calls and every swap are exactly what the earlier nested `pp`/`i` loops did, so classic deal numbers shared before still give the same boards (checked in xvic with deal 123).
   - The shuffle runs in place in `po%`, so no separate array is needed.
   - **Progress block:** before the shuffle, `poke7690,160` puts a reverse space after "dealing..." (row 0, column 10). Each swap pokes its color RAM (38410) with `(jand7)or1`, using the random ring number `j`. Color RAM takes VIC color numbers 0-7, not the PETSCII codes in `po%`; `or1` keeps the result odd (white, cyan, green, yellow), so the block never turns black and vanishes.
@@ -193,10 +193,10 @@ The temporaries `t`, `j` and `i` are shared between routines that never run insi
 | ring up | 360 | middle 36875 | `f=200`, `e=240`, `s=4` (rising) |
 | ring down | 430 | middle 36875 | `f=240`, `e=190`, `s=-2` (a longer, deeper fall than ring up, so it doesn't sound like cancel) |
 | invalid move (lift or drop) | 390 | low 36874 | `f=150`, `e=130`, `s=-1` (falling buzz) |
-| cancel | 480-485 | noise 36877 at 250 | sweeps the **volume** 36878 from 15 to 0 by -1 (a short, airy fade), then restores it to 15 |
+| cancel | 480-485 | noise 36877 at 250 | sweeps the **volume** 36878 from 15 to 0 by -1 (a short, airy fade); 5000 restores it to 15, and 485 turns the noise off |
 | win | 5100 | high 36876 | notes `195+i*12` for `i`=1-4 (207, 219, 231, 243), each held by a 99-step delay loop |
-| lock ("ding-ding") | 5200-5220 | high 36876 | a bell at 230: the volume fades 15 to 0 by -1. Then a bell at 240: held at volume 15 for a 60-step delay loop, then the same fade. Then the voice goes off and the volume back to 15. Chosen by ear to sound unlike the lift and drop sweeps (middle voice) and the win chime (rising notes, no fade). A slower fade alone wasn't audible as longer; the hold is what makes the second bell ring out. |
-| deal | 2520-2550 | middle 36875 | `200+j` on every shuffle swap (random pitch), at volume 6 so it stays in the background; after the shuffle the voice goes off and the volume back to 15 |
+| lock ("ding-ding") | 5200-5210 | high 36876 | a bell at 230: the volume fades 15 to 0 by -1. Then a bell at 240: held at volume 15 for a 60-step delay loop, then the same fade. Then the voice goes off and the volume back to 15. Chosen by ear to sound unlike the lift and drop sweeps (middle voice) and the win chime (rising notes, no fade). A slower fade alone wasn't audible as longer; the hold is what makes the second bell ring out. |
+| deal | 2520-2540 | middle 36875 | `200+j` on every shuffle swap (random pitch), at volume 6 so it stays in the background; after the shuffle the voice goes off and the volume back to 15 |
 
 ## Memory
 
@@ -213,6 +213,7 @@ On an unexpanded VIC-20, program and variables share 3583 bytes.
 | 2026-10-25 | 2932 | 239 | score: moves, live timer, session best; splash screen; keypress seeding (measured the same way; not tightened) |
 | 2026-10-25 | 2569 | 690 | second tightening: 10 fewer variables (screen offsets instead of addresses, shared temporaries, the checker glyph embedded as `{CBM-+}` instead of `b$`), no color array, one PLOT per post draw, tail calls and joined lines (measured the same way) |
 | 2026-10-25 | 2817 | 435 | deal numbers: random 1-99999 or typed after `n`/`y`, shown on row 22 (entry ~150 bytes, seeding ~80 including the `rnd` discards, display ~25) |
-| 2026-10-25 | 3123 | 75 | modes: classic, hard, expert (deal +77 bytes, drop rules +52, row 22 label +48, per-mode bests +59, mode keys +66, win with empty posts +12); not tightened |
+| 2026-10-25 | 3123 | ~82 | modes: classic, hard, expert (deal +77 bytes, drop rules +52, row 22 label +48, per-mode bests +59, mode keys +66, win with empty posts +12); not tightened. (75 was measured after a direct-mode test had added a variable) |
+| 2026-10-25 | 3061 | 158 | third tightening: 2 fewer variables (the deal reuses `n` and `d`), only `i` pre-created, shared digit routine 3300 for rows 0 and 21, one `{down}{left}{left}{left}` per post row, 5000 restores the volume, game resets moved to 220 so the deal's last lines join, `sgn(md)` in the deal (measured: `?fre(0)` right after quitting) |
 
-`po%` takes 185 bytes, `mb%` and `tw%` 13 each, and the 24 simple variables take 7 bytes each (168).
+`po%` takes 185 bytes, `mb%` and `tw%` 13 each, and the 22 simple variables take 7 bytes each (154).
