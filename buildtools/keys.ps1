@@ -9,7 +9,8 @@ try {
     $client.Connect('127.0.0.1', 6510)
     $stream = $client.GetStream()
     # don't send "x" -- exiting the monitor before disconnecting wedges VICE's remote monitor
-    $bytes = [System.Text.Encoding]::ASCII.GetBytes("keybuf `"$Keys`"`n")
+    # keybuf types its argument literally, so quotes would be typed too; \n types Return
+    $bytes = [System.Text.Encoding]::ASCII.GetBytes("keybuf $Keys`n")
     $stream.Write($bytes, 0, $bytes.Length)
     $stream.Flush()
 
