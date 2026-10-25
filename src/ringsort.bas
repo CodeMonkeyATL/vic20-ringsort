@@ -1,4 +1,4 @@
-1 pa=0:pp=0:i=0:dimpo%(10,7),mb%(2),tw%(2):poke36879,12:poke36878,15
+1 i=0:dimpo%(10,7),mb%(2),tw%(2):poke36879,12:poke36878,15
 2 forpp=1to10:po%(pp,7)=19+4*pp-178*(pp>5):next:gosub7000:gosub210
 
 110 getk$:ifk$=""thengosub6100:goto110
@@ -12,9 +12,9 @@
 180 gosub1200:goto110
 
 210 ifdn=0thent=rnd(-ti):t=rnd(1):dn=int(rnd(1)*99999)+1
-220 t=rnd(-dn):t=rnd(1):t=rnd(1):gosub2500:tb=ti:return
+220 mv=0:wn=0:te=0:t=rnd(-dn):t=rnd(1):t=rnd(1):gosub2500:tb=ti:return
 
-250 gosub1200:gosub1100:print"deal #";:dn=0:j=0
+250 gosub1200:print"deal #";:dn=0:j=0
 260 wait198,255:getk$:a=asc(k$):ifa=13thenreturn
 270 ifa=20andj>0thenj=j-1:dn=int(dn/10):printk$;
 280 ifa>47anda<58andj<5thenj=j+1:dn=dn*10+a-48:printk$;
@@ -39,7 +39,7 @@
 476 iftw%(md)=0orte<tw%(md)thentw%(md)=te
 478 gosub3200:goto5100
 480 gosub1300:print"move canceled";:poke36877,250:v=36878:f=15:e=0:s=-1:gosub5000
-485 poke36877,0:poke36878,15:hp=0:goto2000
+485 poke36877,0:hp=0:goto2000
 
 990 poke36878,0:poke36879,27:print"{clr}{blu}";:end
 
@@ -47,33 +47,32 @@
 
 1100 pa=441:goto1000
 
-1200 gosub1100:print"               ";:return
+1200 gosub1100:print"               ";:goto1100
 
 1300 pa=419:gosub1000:print"                  ";:goto1000
 
 2000 pa=po%(pp,7):gosub1000:fori=0to6
-2040 ifpo%(pp,i)thenprint"{reverse on}";chr$(po%(pp,i));" {CBM-+} {reverse off}{down}{left}{left}{left}";:goto2070
-2050 ifi=0thenprint"   {down}{left}{left}{left}";:goto2070
-2060 print" {reverse on}{wht}{CBM-+}{reverse off} {down}{left}{left}{left}";
-2070 next:gosub4110:iflthenprint"{reverse on}";chr$(po%(pp,2));"   {reverse off}{wht}":return
+2040 ifpo%(pp,i)thenprint"{reverse on}";chr$(po%(pp,i));" {CBM-+} {reverse off}";:goto2070
+2050 ifi=0thenprint"   ";:goto2070
+2060 print" {reverse on}{wht}{CBM-+}{reverse off} ";
+2070 print"{down}{left}{left}{left}";:next:gosub4110:iflthenprint"{reverse on}";chr$(po%(pp,2));"   {reverse off}{wht}":return
 2080 print"{reverse on}{wht}{CBM-+}{CBM-+}{CBM-+}{reverse off}":return
 
-2400 a=int((j-1)/5)+1:j=j-5*a+6:a=a-int((a-1)/4)*(md>0):return
+2400 a=int((j-1)/5)+1:j=j-5*a+6:a=a+int(a/5)*sgn(md):return
 
-2500 print"{clr}{wht}dealing...":hp=0:r=50+10*(md>0):forpp=1to10:fori=0to6:po%(pp,i)=0:next:next
-2510 fork=1tor:j=k:gosub2400:po%(a,j)=asc(mid$("{red}{grn}{blu}{yel}{cyn}{red}{grn}{yel}{cyn}",(k-1)/10+1-5*(md>0))):next
-2520 poke7690,160:poke36878,6:fork=rto1step-1:j=k:gosub2400:pp=a:i=j
-2530 j=int(rnd(1)*k)+1:poke38410,(jand7)or1:poke36875,200+j:gosub2400
-2540 t=po%(pp,i):po%(pp,i)=po%(a,j):po%(a,j)=t:next
-2550 poke36875,0:poke36878,15:mv=0:wn=0:te=0
+2500 print"{clr}{wht}dealing...":hp=0:d=50+10*(md>0):forpp=1to10:fori=0to6:po%(pp,i)=0:next:next
+2510 forn=1tod:j=n:gosub2400:po%(a,j)=asc(mid$("{red}{grn}{blu}{yel}{cyn}{red}{grn}{yel}{cyn}",(n-1)/10+1+5*sgn(md))):next
+2520 poke7690,160:poke36878,6:forn=dto1step-1:j=n:gosub2400:pp=a:i=j
+2530 j=int(rnd(1)*n)+1:poke38410,(jand7)or1:poke36875,200+j:gosub2400
+2540 t=po%(pp,i):po%(pp,i)=po%(a,j):po%(a,j)=t:next:poke36875,0:poke36878,15
 
 3000 print"{clr}";:forpp=1to10:gosub2000:next:poke198,0
-3100 pa=1:gosub1000:print"{wht}moves 000 time 00:00";:w=mv:a=7689:d=3:gosub6000
-3110 w=te:a=7700:gosub6200:pa=485:gosub1000:print"deal";dn;
+3100 pa=1:gosub1000:print"{wht}moves 000 time 00:00";:w=mv:j=te:a=7689:gosub3300
+3110 pa=485:gosub1000:print"deal";dn;
 3120 ifmdthenprint"{red}("mid$("hardexpert",4*md-3,2*md+2)"){wht}";
 3200 ifmb%(md)=0thenreturn
-3210 pa=463:gosub1000:print"{cyn}best  000      00:00{wht}";:w=mb%(md):a=8151:d=3:gosub6000
-3220 w=tw%(md):a=8162:goto6200
+3210 pa=463:gosub1000:print"{cyn}best  000      00:00{wht}";:w=mb%(md):j=tw%(md):a=8151
+3300 d=3:gosub6000:w=j:a=a+14:goto6200
 
 4000 fort=1to7:ifpo%(pp,t)=0thennext
 4010 return
@@ -83,13 +82,12 @@
 4120 fori=3to6:ifpo%(pp,i)<>po%(pp,2)thenreturn
 4130 next:l=-1:return
 
-5000 fori=ftoesteps:pokev,i:next:pokev,0:return
+5000 fori=ftoesteps:pokev,i:next:pokev,0:poke36878,15:return
 
 5100 v=36876:fori=1to4:pokev,195+i*12:forj=1to99:next:next:pokev,0:return
 
 5200 poke36876,230:v=36878:f=15:e=0:s=-1:gosub5000
-5210 poke36876,240:poke36878,15:forj=1to60:next:f=15:gosub5000
-5220 poke36876,0:poke36878,15:return
+5210 poke36876,240:forj=1to60:next:f=15:gosub5000:poke36876,0:return
 
 6000 fori=1tod:t=int(w/10):pokea,48+w-10*t:w=t:a=a-1:next:return
 
