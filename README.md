@@ -47,7 +47,7 @@ On the title screen, press `h` for hard, `e` for expert, or any other key for cl
 |---|---|---|---|
 | classic | 50 in 5 colors | every post full | any color on any color; posts hold 6 |
 | hard | 40 in 4 colors (no blue) | posts 5 and 10 empty | same color or an empty post only; posts hold 6 |
-| expert | as hard | as hard | as hard, but posts hold only 5, so there's no spare cap slot |
+| expert | as hard | as hard | as hard, but posts hold only 5: no cap slot (none is drawn) |
 
 Every hard and expert deal we tested with a solver could be won. Hard is forgiving; in expert it's much easier to paint yourself into a corner.
 
