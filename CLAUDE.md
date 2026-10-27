@@ -12,9 +12,8 @@ A color-sorting ring puzzle for an **unexpanded VIC-20**, written in Commodore B
   - Runs `petcat.exe -w2 -l 1001 -o prgs/<name> src/<name>.bas`, then autostarts the PRG in xvic. If xvic is already running, it's sent over the remote monitor (127.0.0.1:6510); otherwise xvic is started with `-memory none -keymap 0 -remotemonitor`.
   - `petcat.exe` and `xvic.exe` must be on PATH (VICE 3.10 GTK3). Copies of petcat/c1541 are also in `tools/`.
 - **See the screen:** `powershell -NoProfile -ExecutionPolicy Bypass -File buildtools/screenshot.ps1` saves a PNG to `screenshots/temp/` (gitignored). The `/screenshot` skill wraps this.
-- **Press keys:** `powershell -NoProfile -ExecutionPolicy Bypass -File buildtools/keys.ps1 -Keys "<keys>"` types into the running program through the monitor's `keybuf` command. Use it freely for testing, e.g. play moves and screenshot the result. `keybuf` types its argument literally; `\n` types Return and `\xNN` any character (`\x20` for space, e.g. RingSort's cancel key). Verified in xvic. Example: after `q`, `-Keys "?fre(0)\n"` prints free memory.
-- **Remote monitor:** talk to xvic only through these scripts (`build-and-run.ps1` autostart, `screenshot.ps1`, `keys.ps1`). Never send `x`, and always read the reply before disconnecting; otherwise the remote monitor wedges. Send one command per connection: `keybuf` and `autostart` written together wedged it.
-- **Autostart replays keys:** `autostart` into a running xvic types the last monitor `keybuf` string again right after `RUN` (more than 10 keys trickle in as the buffer empties, so some can arrive after the program flushes). That made tests show moves that were never sent. `build-and-run.ps1` sets the string to a single `z` before autostarting, which the splash's `poke198,0` discards. Real keypresses are never replayed. A plain monitor `reset` doesn't replay either.
+- **Press keys:** `powershell -NoProfile -ExecutionPolicy Bypass -File buildtools/keys.ps1 -Keys "<keys>"` types into the running program through the monitor's `keybuf` command. Use it freely for testing, e.g. play moves and screenshot the result. `\x20` types a space, RingSort's cancel key. Example: after `q`, `-Keys "?fre(0)\n"` prints free memory.
+- **Remote monitor and autostart:** the rules for driving xvic safely (never send `x`, one command per connection, autostart replaying the last `keybuf` string, escape syntax) are in `meta/claude/xvic.md`, loaded through the workspace CLAUDE.md. The stray `z` that `build-and-run.ps1` leaves for autostart is discarded by the splash's `poke198,0`.
 - **Lint:** `buildtools/check-basic.ps1 -BasFile <file>` checks a source file against the guidelines: missing `goto`/`gosub`/`then` targets (including `on … goto` lists), lines over 88 characters as listed, spaces outside strings and `rem`s, and line numbers that are unnumbered, duplicated or out of order. `build-and-run.ps1` runs it before petcat; it only prints warnings and never stops the build. `ringsort.bas` should stay at 0 warnings; `prototype.bas` and `randomcolors.bas` are old experiments and have warnings.
 - There are no tests. Verify changes by building and looking at the emulator screen.
 - **IDE tasks:** the user works in Visual Studio (Open Folder). VS reads only `.vs/tasks.vs.json`, which is gitignored; `buildtools/tasks.vs.json` is the committed copy (and `buildtools/tasks.json` is the VS Code equivalent). Keep the copies in sync. Every VS Build prints a harmless "The system cannot find the file specified." that comes from VS itself, not the script.
@@ -25,14 +24,12 @@ A color-sorting ring puzzle for an **unexpanded VIC-20**, written in Commodore B
 - `ringsort.bas`: the actual program (formerly `singlepost.bas`). It draws all 10 posts from a data model; this is where development happens.
 - `prototype.bas`: an earlier hard-coded PRINT prototype of the board.
 - `randomcolors.bas`: an earlier shuffle/debug experiment.
-- `colortest.bas`: test screen that verifies the cheatsheet's color tables (color codes via `chr$()` and petcat tokens, color RAM values, and that the C64-only codes do nothing). Waits for a key.
-- `glyphtest.bas`: verifies the cheatsheet's graphics glyph table in three pages: the old table's claims, every graphic glyph (96-127, 160-191, and their repeats at 192-255), and two box styles. Any key advances.
-- The test programs follow the guidelines (0 lint warnings) but aren't tightened; they keep their `rem`s.
+- The cheatsheet's test programs (`colortest.bas`, `glyphtest.bas`) moved to the private `meta` repo.
 
 ## Docs
 
 - `docs/design.md`: how `ringsort.bas` works, including its sound design. Keep it in sync with code changes.
-- `docs/cheatsheet.md`: general VIC-20 reference (petcat tokens, colors, graphics glyphs, color and sound registers, sound patterns). It's meant to be shared with other projects, so keep it free of RingSort specifics; RingSort details go in `design.md`. Some overlap between the two is fine. Facts in it are verified in xvic, with the test programs and screenshots in `screenshots/`.
+- The general VIC-20 reference (petcat tokens, colors, glyphs, registers, keyboard buffer) is the user's cheatsheet in the `meta` repo, `meta/docs/cheatsheet.md`; general facts learned here go there, RingSort specifics in `design.md`. Cross-repo plans are in `meta/ideas.md`.
 
 ## Program architecture (`ringsort.bas`)
 
@@ -58,11 +55,4 @@ The source is tightened: no `rem`s, statements joined. The full explanation, inc
 
 ## Coding guidelines
 
-Follow these for all BASIC written in this repo:
-
-@docs/basic-guidelines.md
-
-## petcat and xvic notes
-
-- petcat auto-numbers unnumbered source lines (previous line + 2). So they end up in the PRG, and they need a numbering gap after the preceding line. Lowercase in the source becomes unshifted PETSCII (displayed as uppercase on the VIC).
-- In xvic, `-keymap 0` (symbolic) makes PC keys type their printed symbols. Under the positional keymap, `=` is on Page Down.
+Follow the BASIC coding rules in the private `meta` repo (`meta/docs/basic-guidelines.md`). The workspace CLAUDE.md one folder up imports them, along with the xvic and petcat notes (`meta/claude/xvic.md`).

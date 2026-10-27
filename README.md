@@ -101,8 +101,6 @@ prgs/
 
 docs/
   design.md            how the program works: data model, routines, variables, memory
-  basic-guidelines.md  how we write BASIC for the unexpanded VIC-20
-  cheatsheet.md        petcat tokens, VIC-20 color codes and registers
 
 screenshots/
   images used in this README (temp/ holds working captures and is gitignored)
@@ -113,7 +111,7 @@ tools/
 
 buildtools/
   build-and-run.ps1  local build: check, petcat the current .bas, then autostart it in xvic
-  check-basic.ps1    lint a .bas file against docs/basic-guidelines.md (warnings only)
+  check-basic.ps1    lint a .bas file against the coding guidelines (warnings only)
   screenshot.ps1     save the running xvic screen to screenshots/temp/ (gitignored)
   tasks.vs.json      Visual Studio task (copy to .vs/tasks.vs.json)
   tasks.json         VS Code task (copy to .vscode/tasks.json)
