@@ -12,7 +12,6 @@ Rings are shuffled onto ten posts. Move them one at a time until every post hold
 - a post that holds five rings of one color locks, so a finished set can't be undone by accident; its base turns solid in the ring color and a ding-ding plays
 - a move readout (`FROM 1 … TO 2`, `MOVE CANCELED`) plus "invalid move" and "solved!" messages
 - a live score on the top row: moves and a running timer, plus the session's best moves and best time for each mode
-- a splash screen; its keypress seeds the shuffle, so every launch gets a different board
 - deal numbers: every board has a number (1-99999) shown at the bottom; type it in after `n` to replay a board or share it with a friend
 - a flickering color block shows the shuffle at work while dealing
 - sound effects: dealing chatter, ring up and down, an invalid-move buzz, a cancel woosh, a lock ding-ding and a win chime
@@ -20,7 +19,7 @@ Rings are shuffled onto ten posts. Move them one at a time until every post hold
 
 ## how to play
 
-On the title screen, press `h` for hard, `e` for expert, or any other key for classic.
+The first game is a random classic deal. For hard or expert, press `n`, then `h` or `e`.
 
 | Key | Action |
 |---|---|
@@ -55,9 +54,9 @@ Every hard and expert deal we tested with a solver could be won. Hard is forgivi
 
 ## screenshots
 
-The splash screen. The key you press here picks the mode and seeds the shuffle.
+Dealing: the title shows while the rings are shuffled, and the block after "dealing..." flickers with every swap.
 
-![the splash screen](screenshots/splash.png)
+![the dealing screen](screenshots/dealing.png)
 
 A classic deal (deal 2026): ten posts, five shuffled rings each. The checkered pole top above each post is the sixth slot. The top row shows the moves and the time, the bottom row the deal number.
 
@@ -82,6 +81,10 @@ The same deal number in hard mode: 40 rings in four colors, with posts 5 and 10 
 Expert mode deals the same board as hard, but posts hold only five rings, so there's no cap slot to park a ring in.
 
 ![expert deal 2026](screenshots/expert-deal.png)
+
+A stuck game: expert deal 2026, 27 moves in. Four posts are locked, and there's no empty post left. Two moves are still legal (a red from post 7 onto post 8, a green from post 9 onto post 6), but they only shuffle reds and greens back and forth: the yellows and cyans buried at the bottom of posts 7-9 can never reach the yellows on post 1 or the cyans on post 4. The game doesn't detect this, so press `n` to start over.
+
+![a stuck expert game](screenshots/expert-stuck.png)
 
 ## compatibility
 
