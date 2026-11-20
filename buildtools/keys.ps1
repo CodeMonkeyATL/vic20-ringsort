@@ -1,7 +1,7 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$Keys,
-    # vic20 (xvic, the default) or c64 (x64sc); see machine.ps1
+    # vic20 (xvic, the default), c64 (x64sc) or plus4 (xplus4); see machine.ps1
     [string]$Machine = 'vic20'
 )
 

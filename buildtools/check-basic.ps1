@@ -7,83 +7,12 @@ param(
 # it never fails the build, so it always exits 0
 # the longest editable line depends on the machine, which the file name picks (see machine.ps1)
 . (Join-Path $PSScriptRoot 'machine.ps1')
-$maxListed = (Get-MachineForFile $BasFile).MaxListed
+$machine = Get-MachineForFile $BasFile
+$maxListed = $machine.MaxListed
 
-# BASIC V2 keywords in token order ($80 upward); the tokenizer takes the first one in this order that matches
-# at the current position, so input# is tried before input, and go (last) only when goto doesn't match
-$keywords = @(
-    'end', 'for', 'next', 'data', 'input#', 'input', 'dim', 'read', 'let', 'goto', 'run', 'if', 'restore', 'gosub',
-    'return', 'rem', 'stop', 'on', 'wait', 'load', 'save', 'verify', 'def', 'poke', 'print#', 'print', 'cont', 'list',
-    'clr', 'cmd', 'sys', 'open', 'close', 'get', 'new', 'tab(', 'to', 'fn', 'spc(', 'then', 'not', 'step',
-    '+', '-', '*', '/', '^', 'and', 'or', '>', '=', '<',
-    'sgn', 'int', 'abs', 'usr', 'fre', 'pos', 'sqr', 'rnd', 'log', 'exp', 'cos', 'sin', 'tan', 'atn', 'peek', 'len',
-    'str$', 'val', 'asc', 'chr$', 'left$', 'right$', 'mid$', 'go'
-)
-# keywords that begin a statement, and functions, which must be followed by "("
-$statementWords = @('end', 'for', 'next', 'data', 'input#', 'input', 'dim', 'read', 'let', 'goto', 'run', 'if',
-    'restore', 'gosub', 'return', 'rem', 'stop', 'on', 'wait', 'load', 'save', 'verify', 'def', 'poke', 'print#',
-    'print', 'cont', 'list', 'clr', 'cmd', 'sys', 'open', 'close', 'get', 'new', 'go')
-$functionWords = @('sgn', 'int', 'abs', 'usr', 'fre', 'pos', 'sqr', 'rnd', 'log', 'exp', 'cos', 'sin', 'tan', 'atn',
-    'peek', 'len', 'str$', 'val', 'asc', 'chr$', 'left$', 'right$', 'mid$')
-
-# splits a line's text the way petcat and the VIC tokenize it: keywords (kw), other characters (ch),
-# strings (str, with quotes), and the text after rem or data, which isn't tokenized (rem, data; data runs to ":")
-function Get-Tokens([string]$text) {
-    $tokens = New-Object System.Collections.Generic.List[object]
-    $lower = $text.ToLowerInvariant()
-    $i = 0
-    while ($i -lt $text.Length) {
-        $ch = $text[$i]
-        if ($ch -eq '"') {
-            $end = $text.IndexOf('"', $i + 1)
-            if ($end -lt 0) { $end = $text.Length - 1 }
-            $tokens.Add([pscustomobject]@{ Type = 'str'; Text = $text.Substring($i, $end - $i + 1); Pos = $i })
-            $i = $end + 1
-            continue
-        }
-        if ($ch -eq '{') {
-            # a petcat {code} outside a string is one character
-            $end = $text.IndexOf('}', $i)
-            if ($end -lt 0) { $end = $text.Length - 1 }
-            $tokens.Add([pscustomobject]@{ Type = 'ch'; Text = $text.Substring($i, $end - $i + 1); Pos = $i })
-            $i = $end + 1
-            continue
-        }
-        $kw = $null
-        foreach ($k in $keywords) {
-            if ($i + $k.Length -le $lower.Length -and $lower.Substring($i, $k.Length) -eq $k) {
-                $kw = $k
-                break
-            }
-        }
-        if ($null -eq $kw) {
-            $tokens.Add([pscustomobject]@{ Type = 'ch'; Text = [string]$ch; Pos = $i })
-            $i++
-            continue
-        }
-        $tokens.Add([pscustomobject]@{ Type = 'kw'; Text = $kw; Pos = $i })
-        $i += $kw.Length
-        if ($kw -eq 'rem') {
-            if ($i -lt $text.Length) {
-                $tokens.Add([pscustomobject]@{ Type = 'rem'; Text = $text.Substring($i); Pos = $i })
-            }
-            break
-        }
-        if ($kw -eq 'data') {
-            # data items stay as typed up to the next ":" outside quotes
-            $start = $i
-            $inQuote = $false
-            while ($i -lt $text.Length -and ($inQuote -or $text[$i] -ne ':')) {
-                if ($text[$i] -eq '"') { $inQuote = -not $inQuote }
-                $i++
-            }
-            if ($i -gt $start) {
-                $tokens.Add([pscustomobject]@{ Type = 'data'; Text = $text.Substring($start, $i - $start); Pos = $start })
-            }
-        }
-    }
-    return , $tokens
-}
+# the keyword lists and Get-Tokens (the tokenizer) are shared with strip-rems.ps1
+. (Join-Path $PSScriptRoot 'basic-tokens.ps1')
+if ($machine.Basic -eq '3.5') { Use-Basic35 }
 
 # finds keywords that ended up where no keyword belongs, the sign that a variable name ran into a keyword
 # (tand7 is TAN d7, fori=stop has STOP, x=pto9 has TO); returns one message per problem
@@ -116,9 +45,12 @@ function Find-KeywordProblems($tokens, [string]$text) {
         $context = $text.Substring($from, [Math]::Min($text.Length, $tok.Pos + $kw.Length + 4) - $from)
         $name = $kw.ToUpperInvariant()
 
+        $previousKw = if ($t -gt 0 -and $tokens[$t - 1].Type -eq 'kw') { $tokens[$t - 1].Text } else { '' }
         if ($statementWords -contains $kw) {
-            # goto/gosub/go may follow "if x" or "on x"; any other statement keyword must start a statement
-            $allowed = $atStart -or (($kw -in @('goto', 'gosub', 'go')) -and ($seenIf -or $seenOn))
+            # goto/gosub/go may follow "if x" or "on x"; any other statement keyword must start a statement,
+            # except BASIC 3.5's getkey (GET KEY) and resume next (RESUME NEXT), which are two tokens
+            $allowed = $atStart -or (($kw -in @('goto', 'gosub', 'go')) -and ($seenIf -or $seenOn)) -or
+                ($kw -eq 'key' -and $previousKw -eq 'get') -or ($kw -eq 'next' -and $previousKw -eq 'resume')
             if (-not $allowed) {
                 $problems.Add("$name inside a statement ('$context'); a name probably ran into a keyword")
             }
@@ -130,8 +62,13 @@ function Find-KeywordProblems($tokens, [string]$text) {
             if (-not ($null -ne $next -and $next.Type -eq 'ch' -and $next.Text -eq '(')) {
                 $problems.Add("$name not followed by '(' ('$context'); a name probably ran into a keyword")
             }
-        } elseif ($kw -eq 'to' -and $statement -ne 'for' -and -not ($t -gt 0 -and $tokens[$t - 1].Text -eq 'go')) {
+        } elseif ($kw -eq 'to' -and $statement -notin @('for', 'draw', 'copy', 'rename', 'backup') -and $previousKw -ne 'go') {
+            # BASIC 3.5's draw, copy, rename and backup take a TO too
             $problems.Add("TO outside a for statement ('$context'); a name probably ran into a keyword")
+        } elseif ($kw -eq 'using' -and $statement -notin @('print', 'print#')) {
+            $problems.Add("USING outside a print statement ('$context'); a name probably ran into a keyword")
+        } elseif ($kw -in @('while', 'until') -and $statement -notin @('do', 'loop')) {
+            $problems.Add("$name outside a do or loop statement ('$context'); a name probably ran into a keyword")
         } elseif ($kw -eq 'step' -and $statement -ne 'for') {
             $problems.Add("STEP outside a for statement ('$context'); a name probably ran into a keyword")
         } elseif ($kw -eq 'then' -and -not $seenIf) {
@@ -142,8 +79,8 @@ function Find-KeywordProblems($tokens, [string]$text) {
 
         if ($kw -eq 'if') { $seenIf = $true }
         if ($kw -eq 'on') { $seenOn = $true }
-        if ($kw -eq 'then') {
-            # what follows then is a new statement (or a line number)
+        if ($kw -in @('then', 'else')) {
+            # what follows then (or BASIC 3.5's else) is a new statement (or a line number)
             $atStart = $true
             $statement = ''
             $seenIf = $false
@@ -163,6 +100,8 @@ function Warn([int]$srcLine, [string]$label, [string]$message) {
 $lines = [System.IO.File]::ReadAllLines($BasFile)
 $numbers = @{}
 $targets = New-Object System.Collections.Generic.List[object]
+# lines that hold only a rem: strip-rems.ps1 drops them from the build, so nothing may jump to them
+$remOnly = @{}
 $previous = -1
 
 for ($n = 0; $n -lt $lines.Length; $n++) {
@@ -191,35 +130,43 @@ for ($n = 0; $n -lt $lines.Length; $n++) {
     $numbers[$number] = $srcLine
     $previous = $number
 
-    # the VIC lists "<number> <text>", with each petcat {code} as one character
-    $listed = $label.Length + 1 + ($text -replace '\{[^}]*\}', 'x').Length
-    if ($listed -gt $maxListed) {
-        Warn $srcLine $label ("{0} characters as listed (limit {1})" -f $listed, $maxListed)
+    $tokens = Get-Tokens $text
+    if ($tokens.Count -gt 0 -and $tokens[0].Type -eq 'kw' -and $tokens[0].Text -eq 'rem') {
+        $remOnly[$number] = $true
     }
 
-    $tokens = Get-Tokens $text
+    # the VIC lists "<number> <text>", with each petcat {code} as one character; the build strips the rem
+    # (strip-rems.ps1), so only the code before it counts
+    $listedText = $text
+    $remToken = $tokens | Where-Object { $_.Type -eq 'kw' -and $_.Text -eq 'rem' } | Select-Object -First 1
+    if ($null -ne $remToken) {
+        $listedText = $text.Substring(0, $remToken.Pos).TrimEnd().TrimEnd(':')
+    }
+    $listed = $label.Length + 1 + ($listedText -replace '\{[^}]*\}', 'x').Length
+    if ($listedText -ne '' -and $listed -gt $maxListed) {
+        Warn $srcLine $label ("{0} characters as listed (limit {1})" -f $listed, $maxListed)
+    }
     foreach ($p in (Find-KeywordProblems $tokens $text)) {
         Warn $srcLine $label $p
     }
 
-    # the code part: strings and rem text removed
-    $code = -join ($tokens | Where-Object { $_.Type -in @('kw', 'ch', 'data') } | ForEach-Object { $_.Text })
+    # the code part: strings and rem text removed, including quoted strings among the data items
+    $code = -join ($tokens | Where-Object { $_.Type -in @('kw', 'ch', 'data') } | ForEach-Object { $_.Text -replace '"[^"]*"?', '' })
     $spaces = ($code.ToCharArray() | Where-Object { $_ -eq ' ' }).Count
     if ($spaces -gt 0) {
         Warn $srcLine $label ("{0} space(s) outside strings" -f $spaces)
     }
 
-    # goto/gosub/then targets, including "on x goto a,b,c" lists
-    foreach ($m in [regex]::Matches($code, '(goto|gosub|then)\s*(\d+(\s*,\s*\d+)*)')) {
-        foreach ($t in ($m.Groups[2].Value -split ',')) {
-            $targets.Add([pscustomobject]@{ Target = [int]$t.Trim(); SrcLine = $srcLine; Label = $label })
-        }
+    foreach ($t in (Get-JumpTargets $tokens)) {
+        $targets.Add([pscustomobject]@{ Target = $t; SrcLine = $srcLine; Label = $label })
     }
 }
 
 foreach ($t in $targets) {
     if (-not $numbers.ContainsKey($t.Target)) {
         Warn $t.SrcLine $t.Label ("jumps to line {0}, which doesn't exist" -f $t.Target)
+    } elseif ($remOnly.ContainsKey($t.Target)) {
+        Warn $t.SrcLine $t.Label ("jumps to line {0}, which holds only a rem; the build keeps it as a bare rem (6 bytes), so put the rem at the end of the routine's first code line" -f $t.Target)
     }
 }
 

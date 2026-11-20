@@ -36,11 +36,30 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             # skip deleted files; join with spaces since $GITHUB_OUTPUT needs a single line
-            files=$(git diff --name-only --diff-filter=d ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }} | grep '\.bas$' | tr '\n' ' ' || true)
+            files=$(git diff --name-only -M --diff-filter=d ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }} | grep '\.bas$' | tr '\n' ' ' || true)
+            # deleted (D) and renamed (R) files: the old name is the second column of --name-status
+            removed=$(git diff --name-status -M --diff-filter=DR ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }} | awk '$2 ~ /\.bas$/ { print $2 }' | tr '\n' ' ')
           else
             files=$(git ls-files '*.bas' | tr '\n' ' ')
+            removed=""
           fi
           echo "files=$files" >> $GITHUB_OUTPUT
+          echo "removed=$removed" >> $GITHUB_OUTPUT
+
+      # before the build, so a .bas moved to a folder with the same prgs/ gets its PRG rebuilt
+      - name: remove prgs of deleted or renamed bas files
+        if: ${{ steps.basfiles.outputs.removed != '' }}
+        env:
+          REMOVED: ${{ steps.basfiles.outputs.removed }}
+        run: |
+          for f in $REMOVED; do
+            base=$(basename "$f" .bas)
+            prg=$(realpath -m --relative-to=. "$(dirname "$f")/../prgs/${base}")
+            if [ -f "$prg" ]; then
+              echo "Removing $prg (its source $f was deleted or renamed)"
+              git rm -q "$prg"
+            fi
+          done
 
       - name: build prg files
         if: ${{ steps.basfiles.outputs.files != '' }}
@@ -56,6 +75,7 @@ jobs:
               *-vic20-8k.bas)    flags="-w2 --vic20-8k" ;;
               *-vic20-16k.bas)   flags="-w2 --vic20-16k" ;;
               *-c64.bas)         flags="-w2 -l 0801" ;;
+              *-plus4.bas)       flags="-w3 -l 1001" ;;
               *-c128.bas)        flags="-w2 --c128" ;;
               *-mega65.bas)      flags="-w2 --mega65" ;;
               *-x16.bas)         flags="-w2 --cx16" ;;
@@ -64,11 +84,14 @@ jobs:
             esac
 
             echo "Building $f → $outdir/${base}"
-            petcat $flags -o "$outdir/${base}" "$f"
+            # without rems, like the local build (buildtools/strip-rems.ps1), so both stay byte-identical
+            stripped="$RUNNER_TEMP/${base}.stripped.bas"
+            pwsh -NoProfile -File buildtools/strip-rems.ps1 -BasFile "$f" -OutFile "$stripped"
+            petcat $flags -o "$outdir/${base}" "$stripped"
           done
 
       - name: commit prg files
-        if: ${{ steps.basfiles.outputs.files != '' }}
+        if: ${{ steps.basfiles.outputs.files != '' || steps.basfiles.outputs.removed != '' }}
         env:
           # passed through env so a PR title can't inject shell commands
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -76,10 +99,12 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           TARGET: ${{ github.event.pull_request.base.ref || github.event.repository.default_branch }}
           FILES: ${{ steps.basfiles.outputs.files }}
+          REMOVED: ${{ steps.basfiles.outputs.removed }}
         run: |
           git config user.name "CodeMonkeyATL-github-actions"
           git config user.email "ci@users.noreply.github.com"
-          git add ./prgs/* || true
+          # -A also stages deletions; the removal step has staged its own with git rm already
+          git add -A ./prgs || true
           if git diff --cached --quiet; then
             echo "no changes to commit"
             exit 0
@@ -90,7 +115,7 @@ jobs:
           else
             subject="auto-build prg from bas for tag $REF_NAME"
           fi
-          git commit -m "$subject" -m "built: $FILES"
+          git commit -m "$subject" -m "built: ${FILES:-none}" -m "removed (source deleted or renamed): ${REMOVED:-none}"
 
           # HEAD is detached on tag builds, so name the branch explicitly
           git push origin "HEAD:$TARGET"
