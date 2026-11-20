@@ -27,7 +27,7 @@ The first game is a random classic deal. For hard or expert, press `n`, then `h`
 | space | put the lifted ring back |
 | `n` | new game: asks `c/h/e` for the mode (any other key cancels), then a deal number (Return alone = random deal) |
 | `r` | redraw the screen |
-| `q` | quit |
+| `q` | quit (back to the launcher, when the launcher started the game) |
 
 **Moving a ring:**
 - Press a post's key: its top ring lifts above the post.
