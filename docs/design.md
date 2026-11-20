@@ -29,7 +29,7 @@ How `src/ringsort.bas` works. The source has only one short `rem` per routine, n
 
 The screen is 22×23 characters; screen RAM starts at 7680. The program passes cursor positions as **offsets** from it (`22*row+column`, 0-505); only the digit pokes (6000) and the dealing block use absolute addresses.
 
-- **Posts:** 2 rows of 5. Post `pp` (1-10) has its origin (top-left cell) at `x=1+col*4`, `y=1+row*9`, where `row=int((pp-1)/5)` and `col=pp-1-5*row`. Multiplied out, the offset is `19+4*pp+178*row`, and line 2 computes it as `19+4*pp-178*(pp>5)` (a comparison is -1 when true).
+- **Posts:** 2 rows of 5. Post `pp` (1-10) has its origin (top-left cell) at `x=1+col*4`, `y=1+row*9`, where `row=int((pp-1)/5)` and `col=pp-1-5*row`. Multiplied out, the offset is `19+4*pp+178*row`, and line 110 computes it as `19+4*pp-178*(pp>5)` (a comparison is -1 when true).
 - **Each post is 8 screen rows tall:**
 
 ```
@@ -41,9 +41,9 @@ row 6   rrr
 row 7   ###   base (never moves)
 ```
 
-- **Characters:** a ring is 3 cells: `{rvs on}<color> <checker> {rvs off}`, the checker being the post running through it. A lifted ring (the hover row) has no post through it, so it's drawn solid: 2040 picks the middle cell with `chr$(32-134*(i>0))`, a space (32) for the hover row and the checker (166) on the post. The pole and base use the checker glyph in white, written in the strings as `{CBM-+}` (PETSCII 166; 230 is the same glyph). It sits inside the string literals, so it costs 1 byte per use and needs no variable.
+- **Characters:** a ring is 3 cells: `{rvs on}<color> <checker> {rvs off}`, the checker being the post running through it. A lifted ring (the hover row) has no post through it, so it's drawn solid: 2010 picks the middle cell with `chr$(32-134*(i>0))`, a space (32) for the hover row and the checker (166) on the post. The pole and base use the checker glyph in white, written in the strings as `{CBM-+}` (PETSCII 166; 230 is the same glyph). It sits inside the string literals, so it costs 1 byte per use and needs no variable.
 - **Drawing a post:** one PLOT to the post origin, then each of rows 0-6 is printed with a trailing `{down}{left}{left}{left}`, which steps the cursor to the start of the next row. One PLOT per row was slower and cost more bytes.
-- **Expert has no visible cap:** its posts hold only 5 rings, so the cap row is drawn blank instead of as the pole top (2050: `i=0or(i=1andmd=2)`). A full post then ends at its top ring, and an empty post's pole starts one row lower. A half-checkerboard (168) was tried first, but printed normally its checker is one pixel out of step with the reversed checker of the pole (an inverted checkerboard is the same pattern shifted by one pixel), and printed reversed its blank half turns solid white.
+- **Expert has no visible cap:** its posts hold only 5 rings, so the cap row is drawn blank instead of as the pole top (2020: `i=0or(i=1andmd=2)`). A full post then ends at its top ring, and an empty post's pole starts one row lower. A half-checkerboard (168) was tried first, but printed normally its checker is one pixel out of step with the reversed checker of the pole (an inverted checkerboard is the same pattern shifted by one pixel), and printed reversed its blank half turns solid white.
 - **Complete posts:** when slots 2-6 hold one color, the base is drawn as 3 reverse spaces in that color instead of the white checker, so the post looks like a filled vessel. The solid base ends with `{wht}`, so the text printed next (the move row, messages) stays white.
 - **Messages start at column 1,** aligned with the left edge of the posts.
 - **Row 19** is the move row: `FROM N` when a ring is lifted from post N, `TO M` at column 12 when it's dropped on post M, and `MOVE CANCELED` when it's put back. A new lift clears the row. A new game or redraw clears the whole screen, including this row. Row 18 stays blank as a gap below the bottom posts' bases.
@@ -53,7 +53,7 @@ row 7   ###   base (never moves)
 - **Row 0** is the status row: `MOVES 000 TIME 00:00` from column 1 to 20 (moves digits at columns 7-9, minutes 16-17, seconds 19-20). Printed by 3100 on every full draw; after that only the digits are poked (6000).
 - **Row 21** is the session best, in cyan: `BEST  000      00:00`, digits in the same columns as row 0. Drawn only once a game in the current mode has been won, and shows that mode's best.
 - **Row 22** shows `# n`, the current deal number, printed by 3110 on every full draw. In hard and expert, 3120 adds `(HARD)` or `(EXPERT)` in red, cut from the string `"hardexpert"` with `mid$` (start `4*md-3`, length `2*md+2`); the label ends with `{wht}`. Classic has no label for now.
-- **While dealing,** row 0 shows "dealing..." followed by a block in column 10 that changes color on every swap of the shuffle. The dealing screen doubles as the title (2500-2505): "RINGSORT" at row 6, column 7, each letter in a color (red, green, purple, yellow, cyan, repeating; no blue, which is hard to read on black); "CODEMONKEYATL" at row 8, column 4. There's no separate splash screen since 2026-11-19 (see Seeding).
+- **While dealing,** row 0 shows "dealing..." followed by a block in column 10 that changes color on every swap of the shuffle. The dealing screen doubles as the title (2500-2510): "RINGSORT" at row 6, column 7, each letter in a color (red, green, purple, yellow, cyan, repeating; no blue, which is hard to read on black); "CODEMONKEYATL" at row 8, column 4. There's no separate splash screen since 2026-11-19 (see Seeding).
 
 ## Data model
 
@@ -66,14 +66,14 @@ row 7   ###   base (never moves)
 | 2-6 | rings 1-5, stacked on the base |
 | 7 | the post origin's screen offset (see Screen layout) |
 
-Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan 159). 0 = empty. The colors exist only as the string literal `"{red}{grn}{blu}{yel}{cyn}{red}{grn}{yel}{cyn}"` in the deal (2510): the first five for classic, the last four (no blue) for hard and expert. There's no color array.
+Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan 159). 0 = empty. The colors exist only as the string literal `"{red}{grn}{blu}{yel}{cyn}{red}{grn}{yel}{cyn}"` in the deal (2530): the first five for classic, the last four (no blue) for hard and expert. There's no color array.
 
 **Rules expressed in the model:**
 - **Top ring:** the lowest non-zero index from 1 to 6. Routine 4000 scans up from index 1 and needs no bounds check: index 7 holds a screen offset, which is at least 23 and never 0, so the scan always stops there at the latest. `t=7` means the post is empty. The scan is `fort=1to7:ifpo%(pp,t)=0thennext`: when the `if` is false, the rest of the line is skipped and the next line returns, leaving the `for` unfinished. That's safe because `return` discards any unfinished `for` loops started inside the subroutine (4120 relies on the same thing).
-- **Drop target:** the index just above the top ring (`t-1`). It's legal only if `t>1` (`t=1` means the post is full), and in expert only if `t>2` (5 rings is full): 400 tests `t<2-(md=2)`.
-- **Color rule (hard and expert):** 410 rejects the drop when `md>0`, the target isn't the ring's own post (that's a cancel), the target isn't empty (`t<7`), and its top ring `po%(pp,t)` differs from the lifted ring. All four tests are safe to evaluate together: when `t=7`, `po%(pp,7)` is a screen offset, which just fails the color test harmlessly.
+- **Drop target:** the index just above the top ring (`t-1`). It's legal only if `t>1` (`t=1` means the post is full), and in expert only if `t>2` (5 rings is full): 600 tests `t<2-(md=2)`.
+- **Color rule (hard and expert):** 610 rejects the drop when `md>0`, the target isn't the ring's own post (that's a cancel), the target isn't empty (`t<7`), and its top ring `po%(pp,t)` differs from the lifted ring. All four tests are safe to evaluate together: when `t=7`, `po%(pp,7)` is a screen offset, which just fails the color test harmlessly.
 - **Complete:** slots 2-6 all hold the same color (routine 4110). The base shows this.
-- **Locked:** complete, and slot 1 is empty (routine 4100, which falls into 4110). The lift rule and the win check use this. The win check (460) also accepts empty posts (`po%(pp,6)=0`), for hard and expert.
+- **Locked:** complete, and slot 1 is empty (routine 4100, which falls into 4110). The lift rule and the win check use this. The win check (660) also accepts empty posts (`po%(pp,6)=0`), for hard and expert.
 - Both are computed when needed, not stored, so they can't get out of sync with the board.
 - **Why the base follows "complete", not "locked":** parking a ring in a locked post's cap slot makes it unlocked (so that ring can be lifted again), but it stays complete. If the base followed the lock, it would switch to checker and back every time a ring is parked and lifted. A complete post also can't become incomplete: its slots 2-6 can only be lifted from when the cap slot is empty, and then the post is locked. So once a base turns solid, it stays solid until the next deal.
 
@@ -81,24 +81,24 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 
 | Line | Routine | In | Out |
 |---|---|---|---|
-| 1-2 | init: hot variables, the sound base `z`, `po%`, volume and colors, post offsets `po%(pp,7)`; then the first game (210), in classic | | |
-| 110 | main loop: `get` a key and dispatch; while no key, tick the timer (6100). Only `n` (tested last, at 160) ends with `goto110`; the other branches fall through the remaining tests, which can't match their key. 150 handles the post keys and space in one line (see "Key to post") | | |
-| 170 | new game prompt: ask `c/h/e` on row 20; `j` becomes 0, 1 or 2 for `c` (or any other key), `h`, `e`. On `c`, `h` or `e` (175: `j-(k$="c")` is non-zero) set `md=j`, read a deal number (250) and start a game (210); clear the prompt either way | | `md` |
-| 210 | start a game: if `dn` is 0, seed from `ti` and pick a random deal number; then (220) reset the moves and timer, seed `rnd(-dn)`, deal and draw (2500), start the timer | `dn` | `dn` |
-| 250 | read a deal number on the message row: digits (up to 5) are echoed, DEL erases one, other keys are ignored, Return ends. Nothing typed (or 0) leaves `dn`=0, which 210 turns into a random deal | | `dn` |
-| 300 | post key: find post `n`'s top ring (4000, for both cases), then lift it, or drop onto `n` if a ring is lifted (400) | `n` | `pp`, `t` |
-| 390 | print "invalid move" | | |
-| 395 | invalid drop: print `TO n` in red on the move row, then "invalid move" (390) | `n` | |
-| 400 | drop the lifted ring onto post `n` (full post, or in hard/expert a different color at 410: invalid via 395), count the move (425), print `TO n`, redraw both posts (playing the lock sound if `n` just locked), check for a win | `n`, `hp` | |
-| 470 | win: freeze the timer, clear the move row, print "solved!", update and show the current mode's session best (`mb%(md)`, `tw%(md)`), leave the result for the launcher (478-479, see "Launcher"), play the chime | | |
-| 480 | the drop was a cancel (`n` = `hp`): print `MOVE CANCELED` | | |
-| 990 | quit: sound off, restore screen colors and blue text; then end, or, when a launcher started the game (841 not 0), load it (991-993, see "Launcher") | | |
+| 100-110 | init: hot variables, the sound base `z`, `po%`, volume and colors, post offsets `po%(pp,7)`; then the first game (300), in classic | | |
+| 200 | main loop: `get` a key and dispatch; while no key, tick the timer (6100). Only `n` (tested last, at 240) ends with `goto200`; the other branches fall through the remaining tests, which can't match their key. 230 handles the post keys and space in one line (see "Key to post") | | |
+| 250 | new game prompt: ask `c/h/e` on row 20; `j` becomes 0, 1 or 2 for `c` (or any other key), `h`, `e`. On `c`, `h` or `e` (260: `j-(k$="c")` is non-zero) set `md=j`, read a deal number (400) and start a game (300); clear the prompt either way | | `md` |
+| 300 | start a game: if `dn` is 0, seed from `ti` and pick a random deal number; then (310) reset the moves and timer, seed `rnd(-dn)`, deal and draw (2500), start the timer | `dn` | `dn` |
+| 400 | read a deal number on the message row: digits (up to 5) are echoed, DEL erases one, other keys are ignored, Return ends. Nothing typed (or 0) leaves `dn`=0, which 300 turns into a random deal | | `dn` |
+| 500 | post key: find post `n`'s top ring (4000, for both cases), then lift it, or drop onto `n` if a ring is lifted (600) | `n` | `pp`, `t` |
+| 540 | print "invalid move" | | |
+| 550 | invalid drop: print `TO n` in red on the move row, then "invalid move" (540) | `n` | |
+| 600 | drop the lifted ring onto post `n` (full post, or in hard/expert a different color at 610: invalid via 550), count the move (630), print `TO n`, redraw both posts (playing the lock sound if `n` just locked), check for a win | `n`, `hp` | |
+| 700 | win: freeze the timer, clear the move row, print "solved!", update and show the current mode's session best (`mb%(md)`, `tw%(md)`), leave the result for the launcher (730-740, see "Launcher"), play the chime | | |
+| 800 | the drop was a cancel (`n` = `hp`): print `MOVE CANCELED` | | |
+| 900 | quit: sound off, restore screen colors and blue text; then end, or, when a launcher started the game (841 not 0), load it (910-930, see "Launcher") | | |
 | 1000 | move the cursor to screen offset `pa` (KERNAL PLOT; `poke` drops the fraction of `pa/22`) | `pa` | |
 | 1100 | move the cursor to the start of the message row | | |
 | 1200 | clear the message row and leave the cursor at its start (shares 1310) | | |
 | 1300 | clear the move row (19) and park the cursor at its start | | |
 | 1310 | print 18 spaces, then move the cursor back to `pa` (both rows use it; row 20 never holds text past column 18) | `pa` | |
-| 2000 | draw post `pp`: rows 0-6 from `po%` (a ring, solid in the hover row; blanks for an empty hover row, and in expert for the cap row, at 2050; otherwise the pole; each row's string, then the shared `{down}{left}{left}{left}` at 2070), then the base (solid if complete, checker otherwise) | `pp` | `l` is clobbered |
+| 2000 | draw post `pp`: rows 0-6 from `po%` (a ring, solid in the hover row; blanks for an empty hover row, and in expert for the cap row, at 2020; otherwise the pole; each row's string, then the shared `{down}{left}{left}{left}` at 2040), then the base (solid if complete, checker otherwise) | `pp` | `l` is clobbered |
 | 2400 | map ring number `j` to its post `a` and slot `j` (posts 5 and 10 skipped when `md>0`) | `j`, `md` | `a`, `j` |
 | 2500 | deal for mode `md`: show "dealing..." and the title, clear all posts, fill in order, then shuffle; falls into 3000 | `md` | |
 | 3000 | clear the screen, draw all posts, discard keys typed meanwhile; falls into 3100 | | |
@@ -134,20 +134,20 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 | `hp` | post with a lifted ring (0 = none) |
 | `t` | top ring index (from 4000); swap temporary in the deal; 6000's quotient; the dummy result of `rnd(-ti)` |
 | `l` | lock result from 4100, or complete result from 4110 |
-| `j`, `a` | deal: random ring number, then its slot (`j`) and post (`a`). `j` is also the new game prompt's mode, the delay loop of the win chime and the lock sound, 6200's minutes, 250's digit count and the time handed to 3300; `a` is also 6000's screen address and 250's key code |
+| `j`, `a` | deal: random ring number, then its slot (`j`) and post (`a`). `j` is also the new game prompt's mode, the delay loop of the win chime and the lock sound, 6200's minutes, 400's digit count and the time handed to 3300; `a` is also 6000's screen address and 400's key code |
 | `mv` | moves this game |
 | `tb`, `te` | timer: `ti` when the board was drawn; elapsed seconds last shown (the final time after a win) |
 | `wn` | timer state: 0 running, -1 frozen by a win, 1 stopped at 99:59 |
 | `w`, `d` | 6000/6200: value to show, digit count. `d` is also the deal's ring count (50, or 40 when `md>0`); every 6000 call sets `d` first |
 | `v`, `f`, `e`, `s` | sound sweep (5000): register, from, end, step |
 
-BASIC searches variables in creation order, so the ones read most often while drawing should be created first: line 1 creates `i` (then `z`, used only by sounds), line 2's loop `pp`, and the first game's deal `pa`, before the others.
+BASIC searches variables in creation order, so the ones read most often while drawing should be created first: line 100 creates `i` (then `z`, used only by sounds), line 110's loop `pp`, and the first game's deal `pa`, before the others.
 
-The temporaries `t`, `j` and `i` are shared between routines that never run inside each other's use of them: 6000 runs from the move code only after 420 is done with `t`, and 6200 runs only from the idle loop, the win and the full draw, none of which is inside the deal's or a sound's use of `j`.
+The temporaries `t`, `j` and `i` are shared between routines that never run inside each other's use of them: 6000 runs from the move code only after 620 is done with `t`, and 6200 runs only from the idle loop, the win and the full draw, none of which is inside the deal's or a sound's use of `j`.
 
 ## Details worth knowing
 
-- **Key to post:** `n=val(k$)-10*(k$="0")-hp*(k$=" ")`, then `ifnthengosub300`. A comparison is -1 when true, so key `0` gives 0+10=10, and keys `1`-`9` give 1-9. Space gives `hp`, the post with the lifted ring, so dropping it back there cancels the move (or 0 when nothing is lifted). Any other key gives 0, since `val` of a letter or symbol is 0, so no range test is needed.
+- **Key to post:** `n=val(k$)-10*(k$="0")-hp*(k$=" ")`, then `ifnthengosub500`. A comparison is -1 when true, so key `0` gives 0+10=10, and keys `1`-`9` give 1-9. Space gives `hp`, the post with the lifted ring, so dropping it back there cancels the move (or 0 when nothing is lifted). Any other key gives 0, since `val` of a letter or symbol is 0, so no range test is needed.
 - **The deal:**
   - It clears every post, fills the rings in order (each pair of posts gets one color), then shuffles. Rings are numbered `n` from 1 to `d` (50, or 40 when `md>0`). Routine 2400 maps a ring number `j` to its post and slot: post `a=int((j+4)/5)`, slot `j-5*a+6`; then `a=a+int(a/5)*sgn(md)` shifts posts 5-8 to 6-9 when `md>0`, so posts 5 and 10 stay empty.
   - Ring `n`'s color is `asc(mid$("{red}{grn}{blu}{yel}{cyn}{red}{grn}{yel}{cyn}",(n+9)/10+5*sgn(md)))`: `mid$` drops the fraction of its position, and `md>0` (`sgn(md)`=1) moves the start to the four colors without blue. Each `mid$` leaves a 1-byte string as garbage, 40-50 per deal; with so few live strings, garbage collection is quick and happens off the gameplay path.
@@ -155,18 +155,18 @@ The temporaries `t`, `j` and `i` are shared between routines that never run insi
   - **Classic deals didn't change** when modes were added: for `md=0` the fill, the order of `rnd` calls and every swap are exactly what the earlier nested `pp`/`i` loops did, so classic deal numbers shared before still give the same boards (checked in xvic with deal 123).
   - The shuffle runs in place in `po%`, so no separate array is needed.
   - **Progress block:** before the shuffle, `poke7690,160` puts a reverse space after "dealing..." (row 0, column 10). Each swap pokes its color RAM (38410) with `(jand7)or1`, using the random ring number `j`. Color RAM takes VIC color numbers 0-7, not the PETSCII codes in `po%`; `or1` keeps the result odd (white, cyan, green, yellow), so the block never turns black and vanishes.
-- **Win check:** only a drop that locks its destination post can finish the game, so 400 checks that post first and scans all 10 posts only if it just locked. The scan stops at the first post that isn't locked.
-- **Lock sound timing:** 430 redraws the destination post first, then checks its lock and plays the lock sound, and only then redraws the source post. So the solid base appears and the sound plays together. The lock check is repeated at 445 for the win check, because drawing the source post (2000) overwrites `l`. On the winning drop, the lock sound plays before the win chime.
+- **Win check:** only a drop that locks its destination post can finish the game, so 600 checks that post first and scans all 10 posts only if it just locked. The scan stops at the first post that isn't locked.
+- **Lock sound timing:** 640 redraws the destination post first, then checks its lock and plays the lock sound, and only then redraws the source post. So the solid base appears and the sound plays together. The lock check is repeated at 650 for the win check, because drawing the source post (2000) overwrites `l`. On the winning drop, the lock sound plays before the win chime.
 - **Redraws:** a move redraws only the posts it touches (routine 2000); `r` and a new game redraw everything (3000).
-- **Seeding:** `rnd(-ti)` seeds from the jiffy clock, so the seed is only as varied as the moment it's taken. Autostart resets the machine and reaches line 2 at almost the same `ti` every time (157 or 158 jiffies, measured in xvic), so seeding at startup gave the same first board on nearly every launch, and `rnd(1)` then repeated the same series of boards. Seeding twice (`rnd(-ti)`, then `rnd(-rnd(1)*1000)`) doesn't help: the same input still gives the same output. Until 2026-11-19 the seed was taken when a human pressed a key on a splash screen. The splash was dropped to save memory, so now 210 seeds from `ti` at startup for the first game, and after each new game's deal number entry (250) for the others. On a real VIC-20 the startup `ti` varies, because a person types `LOAD` and `RUN`. Under xvic autostart it doesn't, so every autostarted launch begins on the same board; `n` gives a fresh one. The first game is always classic.
-- **Deal numbers:** a deal is fully determined by its seed, so the deal number is the seed. For a random deal, 210 seeds from `ti`, discards one `rnd(1)`, picks `dn=int(rnd(1)*99999)+1` from the next; then 220 reseeds with `rnd(-dn)`, discards two `rnd(1)` values, and deals. A typed number skips straight to 220. So the same number always gives the same board. Details:
+- **Seeding:** `rnd(-ti)` seeds from the jiffy clock, so the seed is only as varied as the moment it's taken. Autostart resets the machine and reaches line 110 at almost the same `ti` every time (157 or 158 jiffies, measured in xvic), so seeding at startup gave the same first board on nearly every launch, and `rnd(1)` then repeated the same series of boards. Seeding twice (`rnd(-ti)`, then `rnd(-rnd(1)*1000)`) doesn't help: the same input still gives the same output. Until 2026-11-19 the seed was taken when a human pressed a key on a splash screen. The splash was dropped to save memory, so now 300 seeds from `ti` at startup for the first game, and after each new game's deal number entry (400) for the others. On a real VIC-20 the startup `ti` varies, because a person types `LOAD` and `RUN`. Under xvic autostart it doesn't, so every autostarted launch begins on the same board; `n` gives a fresh one. The first game is always classic.
+- **Deal numbers:** a deal is fully determined by its seed, so the deal number is the seed. For a random deal, 300 seeds from `ti`, discards one `rnd(1)`, picks `dn=int(rnd(1)*99999)+1` from the next; then 310 reseeds with `rnd(-dn)`, discards two `rnd(1)` values, and deals. A typed number skips straight to 310. So the same number always gives the same board. Details:
   - `dn` is an ordinary float variable, so 5 digits need no range check: any 1-99999 is valid. It's never used with `and`/`or` or stored in an integer array, which is where the 32767 limit applies.
   - 0 is never a seed: `rnd(0)` reads a hardware timer instead of seeding. Entering 0 (or nothing) gives a random deal instead.
   - **Why the discards:** the first `rnd(1)` after `rnd(-x)` is almost a linear function of `x` when neighboring seeds have the same float exponent. Measured in xvic: seeds 150-159 gave deal numbers 4629, 99758, 95278, 90410, … (each about 4870 lower, wrapping), and seeds 50000-50004 gave first values .001, .908, .814, .721, .627. The second value is still partly patterned; the third and later look independent. So the random pick uses the 2nd value after the `ti` seed, and the shuffle starts at the 3rd value after the `dn` seed. Without the discards, neighboring `ti` values gave evenly stepped deal numbers, and neighboring deal numbers shared the first swaps of the shuffle.
   - **Measured fairness** (2000 consecutive `ti` seeds, bucketed by 10000): the first value gave a suspiciously perfect 195-205 per bucket (the fixed step wrapping); the second value gave 185-217 with 47 neighbor pairs within 1000 of each other (about 40 expected), which is what independent random numbers look like.
   - **Variety of the first game:** its seed is the `ti` jiffy count when the program starts, which on real hardware depends on how long after power-on the player typed `RUN`. Every jiffy (1/60 s) gives a different deal. Later games seed from `ti` at the deal prompt.
-  - **Deal numbers are tied to the deal code** (2400-2550) and to the order of `rnd` calls. Changing the shuffle or the colors changes what every number means. The mode shown next to the number on row 22 tells the deal variants apart: classic deal 123 and hard deal 123 are different boards (hard and expert deal 123 are the same board).
-  - The entry routine (250) builds the number arithmetically (`dn=dn*10+a-48`, `dn=int(dn/10)` for DEL), so it makes no string garbage. It echoes accepted keys by printing `k$` itself; printing DEL (20) erases the last digit on screen.
+  - **Deal numbers are tied to the deal code** (2400-2560) and to the order of `rnd` calls. Changing the shuffle or the colors changes what every number means. The mode shown next to the number on row 22 tells the deal variants apart: classic deal 123 and hard deal 123 are different boards (hard and expert deal 123 are the same board).
+  - The entry routine (400) builds the number arithmetically (`dn=dn*10+a-48`, `dn=int(dn/10)` for DEL), so it makes no string garbage. It echoes accepted keys by printing `k$` itself; printing DEL (20) erases the last digit on screen.
 - **The live timer:** there's no interrupt code of our own. The KERNAL's interrupt already increments the jiffy clock `ti` 60 times a second.
   - The main loop's idle `get` loop calls 6100 on every pass. It computes the elapsed seconds `int((ti-tb)/60)` and redraws only when they change, so the cost is one calculation per pass.
   - During sounds and redraws the display doesn't update, but the clock keeps counting, and the next idle pass catches up. The time is always computed from `ti`, so it never drifts.
@@ -182,7 +182,7 @@ The temporaries `t`, `j` and `i` are shared between routines that never run insi
 
 RingSort is game 4 for `vic20-launcher`, which posts results to the leaderboard. The contract (the cassette buffer at 828-1019) is in `vic20-launcher/docs/design.md`, "The cassette buffer"; the shared routines are in `meta/docs/routines.md`, "Launcher handoff". Added in two steps on 2026-11-19: the result, then `q` loading the launcher. There's no `l` key, unlike 2up11 and MonkeySwap (the user's choice): `q` is the way back, and the launcher's menu has the leaderboard.
 
-- **The result (478-479):** written on every solved board, whether or not a launcher started the game, so the last solved board is the one the launcher posts (an earlier one is overwritten; no comparison with the session best). Nothing is written for a board that isn't solved, so quitting posts nothing.
+- **The result (730-740):** written on every solved board, whether or not a launcher started the game, so the last solved board is the one the launcher posts (an earlier one is overwritten; no comparison with the session best). Nothing is written for a board that isn't solved, so quitting posts nothing.
 
 | Address | Value |
 |---|---|
@@ -195,7 +195,7 @@ RingSort is game 4 for `vic20-launcher`, which posts results to the leaderboard.
 - Both values stay under 32768, so `and` is safe and two bytes per field are enough. The third byte of each field (906, 909) and the optional `TI` (916-918) aren't written: the launcher zeroes 900-918 after reading, and power-on and reset clear the buffer (the KERNAL's RAMTAS zeroes $0200-$03FF, checked 2026-11-19). A tape load or another program can leave data there; that's the launcher's to clear before it starts a game (`vic20-launcher/docs/todo.md`), so RingSort spends no bytes on it.
 - **Lower is better** for both fields; the service has to rank RingSort that way when game 4 is registered.
 - Inline in the win rather than a routine, since it's written from one place: 85 bytes (97 as a `gosub` routine).
-- **Back to the launcher (990-993, step 2):** the quit key `q` loads the launcher when one started the game, so the player never drops to `READY.` from a launched game; started on its own (841 = 0), `q` ends as before. 991 prints `load"<name>",<device>` on row 2 from 842-899 and 841, `{home}` with a `;` so `READY.` doesn't land on that line, then 992-993 put Return, `r`, `u`, `n`, Return in the keyboard buffer (631-635, count 5 at 198) and end: BASIC enters the `load` line, then runs the launcher. The routine is `meta/docs/routines.md`'s "Load the launcher", joined onto RingSort's existing quit, which already turned the sound off and put the colors back (135 bytes, against 158 for the routine on its own). No reverse-mode guard is needed: every reversed print in RingSort ends with `{reverse off}`.
+- **Back to the launcher (900-930, step 2):** the quit key `q` loads the launcher when one started the game, so the player never drops to `READY.` from a launched game; started on its own (841 = 0), `q` ends as before. 910 prints `load"<name>",<device>` on row 2 from 842-899 and 841, `{home}` with a `;` so `READY.` doesn't land on that line, then 920-930 put Return, `r`, `u`, `n`, Return in the keyboard buffer (631-635, count 5 at 198) and end: BASIC enters the `load` line, then runs the launcher. The routine is `meta/docs/routines.md`'s "Load the launcher", joined onto RingSort's existing quit, which already turned the sound off and put the colors back (135 bytes, against 158 for the routine on its own). No reverse-mode guard is needed: every reversed print in RingSort ends with `{reverse off}`.
 - **Tested 2026-11-19 in xvic** (the launcher and its mock in `prgs-latest`): started on its own, `q` ends at `READY.`; with 841-850 poked as a launcher would (device 8, `launcher`), a solved classic board and then `q` loaded the launcher, which showed `/V1/S?G=4&V=1&P=1&A=1&B=30` (the posting is still a stub there).
 
 ## Sound
@@ -203,7 +203,7 @@ RingSort is game 4 for `vic20-launcher`, which posts results to the leaderboard.
 **How the VIC makes sound:**
 - **Voices:** three square-wave voices, low (36874), middle (36875) and high (36876), plus noise (36877).
 - **Pitch:** a voice plays when its register holds 128-255 (higher = higher pitch) and is silent at 0.
-- **Volume:** 36878 holds the volume (0-15) for all voices. Line 1 sets it to 15, and quitting (990) sets it to 0, so no stuck note keeps playing.
+- **Volume:** 36878 holds the volume (0-15) for all voices. Line 100 sets it to 15, and quitting (900) sets it to 0, so no stuck note keeps playing.
 - **No envelopes or timers:** a sweep is a BASIC loop poking the pitch, and the game waits while it runs.
 
 **Where each sound plays:** the move sounds play after the move text is printed and before the posts are redrawn, so the text appears first.
@@ -212,13 +212,13 @@ RingSort is game 4 for `vic20-launcher`, which posts results to the leaderboard.
 
 | Sound | Line | Voice | Values |
 |---|---|---|---|
-| ring up | 360 | middle 36875 | `f=200`, `e=240`, `s=4` (rising) |
-| ring down | 430 | middle 36875 | `f=240`, `e=190`, `s=-2` (a longer, deeper fall than ring up, so it doesn't sound like cancel) |
-| invalid move (lift or drop) | 390 | low 36874 | `f=150`, `e=130`, `s=-1` (falling buzz) |
-| cancel | 480-485 | noise 36877 at 250 | sweeps the **volume** 36878 from 15 to 0 by -1 (a short, airy fade, set up by 5000); 5010 restores it to 15, and 485 turns the noise off |
+| ring up | 530 | middle 36875 | `f=200`, `e=240`, `s=4` (rising) |
+| ring down | 640 | middle 36875 | `f=240`, `e=190`, `s=-2` (a longer, deeper fall than ring up, so it doesn't sound like cancel) |
+| invalid move (lift or drop) | 540 | low 36874 | `f=150`, `e=130`, `s=-1` (falling buzz) |
+| cancel | 800-810 | noise 36877 at 250 | sweeps the **volume** 36878 from 15 to 0 by -1 (a short, airy fade, set up by 5000); 5010 restores it to 15, and 810 turns the noise off |
 | win | 5100 | high 36876 | notes `195+i*12` for `i`=1-4 (207, 219, 231, 243), each held by a 99-step delay loop |
 | lock ("ding-ding") | 5200-5210 | high 36876 | a bell at 230: the volume fades 15 to 0 by -1. Then a bell at 240: held at volume 15 for a 60-step delay loop, then the same fade. Then the voice goes off and the volume back to 15. Chosen by ear to sound unlike the lift and drop sweeps (middle voice) and the win chime (rising notes, no fade). A slower fade alone wasn't audible as longer; the hold is what makes the second bell ring out. |
-| deal | 2520-2540 | middle 36875 | `200+j` on every shuffle swap (random pitch), at volume 6 so it stays in the background; after the shuffle the voice goes off and the volume back to 15 |
+| deal | 2540-2560 | middle 36875 | `200+j` on every shuffle swap (random pitch), at volume 6 so it stays in the background; after the shuffle the voice goes off and the volume back to 15 |
 
 ## Memory
 
@@ -245,5 +245,6 @@ On an unexpanded VIC-20, program and variables share 3583 bytes.
 | 2026-11-19 | 2871 | 348 | the same build, measured after a win instead (a board one move from solved, set up in direct mode); the rows below are measured this way |
 | 2026-11-19 | 2956 | 263 | launcher step 1: the result for the launcher on a solved board (85 bytes) |
 | 2026-11-19 | 3091 | 128 | launcher step 2: `q` loads the launcher when one started the game (135 bytes) |
+| 2026-11-19 | 3091 | 128 | renumbered (steps of 10, routines on 100s, same order) with `buildtools/renumber.ps1`: no change in size or free memory. Line numbers in the rows above are the old ones |
 
 `po%` takes 185 bytes, `mb%` and `tw%` 13 each, and the 23 simple variables take 7 bytes each (161).
