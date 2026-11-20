@@ -1,6 +1,6 @@
 # ringsort design notes
 
-How `src/ringsort.bas` works. The source has no comments: they cost too much memory on an unexpanded VIC-20. This file is where the explanations live, so update it whenever the code changes.
+How `src/ringsort.bas` works. The source has only one short `rem` per routine, naming it; the build strips them, so they cost no memory. This file is where the explanations live, so update it whenever the code changes.
 
 ## The game
 
