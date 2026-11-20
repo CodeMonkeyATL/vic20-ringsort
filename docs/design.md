@@ -92,7 +92,7 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 | 400 | drop the lifted ring onto post `n` (full post, or in hard/expert a different color at 410: invalid via 395), count the move (425), print `TO n`, redraw both posts (playing the lock sound if `n` just locked), check for a win | `n`, `hp` | |
 | 470 | win: freeze the timer, clear the move row, print "solved!", update and show the current mode's session best (`mb%(md)`, `tw%(md)`), leave the result for the launcher (478-479, see "Launcher"), play the chime | | |
 | 480 | the drop was a cancel (`n` = `hp`): print `MOVE CANCELED` | | |
-| 990 | quit: restore screen colors and blue text | | |
+| 990 | quit: sound off, restore screen colors and blue text; then end, or, when a launcher started the game (841 not 0), load it (991-993, see "Launcher") | | |
 | 1000 | move the cursor to screen offset `pa` (KERNAL PLOT; `poke` drops the fraction of `pa/22`) | `pa` | |
 | 1100 | move the cursor to the start of the message row | | |
 | 1200 | clear the message row and leave the cursor at its start (shares 1310) | | |
@@ -180,7 +180,7 @@ The temporaries `t`, `j` and `i` are shared between routines that never run insi
 
 ## Launcher
 
-RingSort is game 4 for `vic20-launcher`, which posts results to the leaderboard. The contract (the cassette buffer at 828-1019) is in `vic20-launcher/docs/design.md`, "The cassette buffer"; the shared routines are in `meta/docs/routines.md`, "Launcher handoff". Being added in steps (2026-11-19): the result first, then loading the launcher, then `l` and quit.
+RingSort is game 4 for `vic20-launcher`, which posts results to the leaderboard. The contract (the cassette buffer at 828-1019) is in `vic20-launcher/docs/design.md`, "The cassette buffer"; the shared routines are in `meta/docs/routines.md`, "Launcher handoff". Added in two steps on 2026-11-19: the result, then `q` loading the launcher. There's no `l` key, unlike 2up11 and MonkeySwap (the user's choice): `q` is the way back, and the launcher's menu has the leaderboard.
 
 - **The result (478-479):** written on every solved board, whether or not a launcher started the game, so the last solved board is the one the launcher posts (an earlier one is overwritten; no comparison with the session best). Nothing is written for a board that isn't solved, so quitting posts nothing.
 
@@ -195,6 +195,8 @@ RingSort is game 4 for `vic20-launcher`, which posts results to the leaderboard.
 - Both values stay under 32768, so `and` is safe and two bytes per field are enough. The third byte of each field (906, 909) and the optional `TI` (916-918) aren't written: the launcher zeroes 900-918 after reading, and power-on and reset clear the buffer (the KERNAL's RAMTAS zeroes $0200-$03FF, checked 2026-11-19). A tape load or another program can leave data there; that's the launcher's to clear before it starts a game (`vic20-launcher/docs/todo.md`), so RingSort spends no bytes on it.
 - **Lower is better** for both fields; the service has to rank RingSort that way when game 4 is registered.
 - Inline in the win rather than a routine, since it's written from one place: 85 bytes (97 as a `gosub` routine).
+- **Back to the launcher (990-993, step 2):** the quit key `q` loads the launcher when one started the game, so the player never drops to `READY.` from a launched game; started on its own (841 = 0), `q` ends as before. 991 prints `load"<name>",<device>` on row 2 from 842-899 and 841, `{home}` with a `;` so `READY.` doesn't land on that line, then 992-993 put Return, `r`, `u`, `n`, Return in the keyboard buffer (631-635, count 5 at 198) and end: BASIC enters the `load` line, then runs the launcher. The routine is `meta/docs/routines.md`'s "Load the launcher", joined onto RingSort's existing quit, which already turned the sound off and put the colors back (135 bytes, against 158 for the routine on its own). No reverse-mode guard is needed: every reversed print in RingSort ends with `{reverse off}`.
+- **Tested 2026-11-19 in xvic** (the launcher and its mock in `prgs-latest`): started on its own, `q` ends at `READY.`; with 841-850 poked as a launcher would (device 8, `launcher`), a solved classic board and then `q` loaded the launcher, which showed `/V1/S?G=4&V=1&P=1&A=1&B=30` (the posting is still a stub there).
 
 ## Sound
 
@@ -242,5 +244,6 @@ On an unexpanded VIC-20, program and variables share 3583 bytes.
 | 2026-11-19 | 2871 | 341 | no splash screen: the title shows on the dealing screen, and the first game starts at once, in classic |
 | 2026-11-19 | 2871 | 348 | the same build, measured after a win instead (a board one move from solved, set up in direct mode); the rows below are measured this way |
 | 2026-11-19 | 2956 | 263 | launcher step 1: the result for the launcher on a solved board (85 bytes) |
+| 2026-11-19 | 3091 | 128 | launcher step 2: `q` loads the launcher when one started the game (135 bytes) |
 
 `po%` takes 185 bytes, `mb%` and `tw%` 13 each, and the 23 simple variables take 7 bytes each (161).

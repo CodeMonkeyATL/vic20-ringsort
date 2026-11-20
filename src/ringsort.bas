@@ -41,7 +41,10 @@
 480 gosub1300:print"move canceled";:pokez+3,250:gosub5000:rem cancel
 485 pokez+3,0:hp=0:goto2000
 
-990 pokez+4,0:pokez+5,27:print"{clr}{blu}";:end:rem quit
+990 pokez+4,0:pokez+5,27:print"{clr}{blu}";:ifpeek(841)=0thenend:rem quit, or load the launcher
+991 print"{down}{down}load"chr$(34);:fori=1topeek(842):printchr$(peek(842+i));:next
+992 printchr$(34)","peek(841)"{home}";:poke631,13:poke632,82:poke633,85
+993 poke634,78:poke635,13:poke198,5:end
 
 1000 poke781,pa/22:poke782,pa-22*int(pa/22):poke783,0:sys65520:return:rem cursor to pa
 
