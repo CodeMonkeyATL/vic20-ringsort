@@ -82,6 +82,10 @@ Expert mode deals the same board as hard, but posts hold only five rings, so the
 
 ![expert deal 2026](screenshots/expert-deal.png)
 
+A stuck game: expert deal 2026, 27 moves in. Four posts are locked, and there's no empty post left. Two moves are still legal (a red from post 7 onto post 8, a green from post 9 onto post 6), but they only shuffle reds and greens back and forth: the yellows and cyans buried at the bottom of posts 7-9 can never reach the yellows on post 1 or the cyans on post 4. The game doesn't detect this, so press `n` to start over.
+
+![a stuck expert game](screenshots/expert-stuck.png)
+
 ## compatibility
 
 - Unexpanded VIC-20 (3583 bytes free for BASIC). Not yet tested with RAM expansion.
