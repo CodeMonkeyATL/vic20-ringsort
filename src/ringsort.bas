@@ -36,7 +36,8 @@
 470 next:gosub6110:wn=-1:gosub1300:gosub1100:print"solved!";:rem win
 475 ifmb%(md)=0ormv<mb%(md)thenmb%(md)=mv
 476 iftw%(md)=0orte<tw%(md)thentw%(md)=te
-478 gosub3200:goto5100
+478 gosub3200:poke900,4:poke901,251:poke902,md+1:poke903,2:rem result for the launcher
+479 poke904,255andmv:poke905,mv/256:poke907,255andte:poke908,te/256:goto5100
 480 gosub1300:print"move canceled";:pokez+3,250:gosub5000:rem cancel
 485 pokez+3,0:hp=0:goto2000
 
