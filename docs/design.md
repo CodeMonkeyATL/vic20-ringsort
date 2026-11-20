@@ -90,7 +90,7 @@ Ring values are PETSCII color codes (red 28, green 30, blue 31, yellow 158, cyan
 | 390 | print "invalid move" | | |
 | 395 | invalid drop: print `TO n` in red on the move row, then "invalid move" (390) | `n` | |
 | 400 | drop the lifted ring onto post `n` (full post, or in hard/expert a different color at 410: invalid via 395), count the move (425), print `TO n`, redraw both posts (playing the lock sound if `n` just locked), check for a win | `n`, `hp` | |
-| 470 | win: freeze the timer, clear the move row, print "solved!", update and show the current mode's session best (`mb%(md)`, `tw%(md)`), play the chime | | |
+| 470 | win: freeze the timer, clear the move row, print "solved!", update and show the current mode's session best (`mb%(md)`, `tw%(md)`), leave the result for the launcher (478-479, see "Launcher"), play the chime | | |
 | 480 | the drop was a cancel (`n` = `hp`): print `MOVE CANCELED` | | |
 | 990 | quit: restore screen colors and blue text | | |
 | 1000 | move the cursor to screen offset `pa` (KERNAL PLOT; `poke` drops the fraction of `pa/22`) | `pa` | |
@@ -178,6 +178,24 @@ The temporaries `t`, `j` and `i` are shared between routines that never run insi
   - The new game prompt doesn't flush either, so a fast `n` then `c` works.
   - The new game prompt and the deal number entry wait with `wait198,255`, which pauses until the count is non-zero (any key), with no loop line of its own. `wait198,1` would hang when 2 keys are already waiting.
 
+## Launcher
+
+RingSort is game 4 for `vic20-launcher`, which posts results to the leaderboard. The contract (the cassette buffer at 828-1019) is in `vic20-launcher/docs/design.md`, "The cassette buffer"; the shared routines are in `meta/docs/routines.md`, "Launcher handoff". Being added in steps (2026-11-19): the result first, then loading the launcher, then `l` and quit.
+
+- **The result (478-479):** written on every solved board, whether or not a launcher started the game, so the last solved board is the one the launcher posts (an earlier one is overwritten; no comparison with the session best). Nothing is written for a board that isn't solved, so quitting posts nothing.
+
+| Address | Value |
+|---|---|
+| 900, 901 | game id 4, and 255 − 4 = 251 as a check |
+| 902 | variant `md+1`: 1 classic, 2 hard, 3 expert (0 would mean "no variant") |
+| 903 | 2 fields |
+| 904-905 | moves `mv`, low byte first (`255andmv`, `mv/256`; `poke` drops the fraction) |
+| 907-908 | time in seconds `te` (the frozen final time), low byte first |
+
+- Both values stay under 32768, so `and` is safe and two bytes per field are enough. The third byte of each field (906, 909) and the optional `TI` (916-918) aren't written: the launcher zeroes 900-918 after reading, and power-on and reset clear the buffer (the KERNAL's RAMTAS zeroes $0200-$03FF, checked 2026-11-19). A tape load or another program can leave data there; that's the launcher's to clear before it starts a game (`vic20-launcher/docs/todo.md`), so RingSort spends no bytes on it.
+- **Lower is better** for both fields; the service has to rank RingSort that way when game 4 is registered.
+- Inline in the win rather than a routine, since it's written from one place: 85 bytes (97 as a `gosub` routine).
+
 ## Sound
 
 **How the VIC makes sound:**
@@ -222,5 +240,7 @@ On an unexpanded VIC-20, program and variables share 3583 bytes.
 | 2026-11-19 | 2954 | 258 | fourth tightening: sound registers as `z+n`, space and post keys in one line, the top-ring search moved into 300, one clearing print for rows 19 and 20, the volume fade as its own routine, shorter equivalent formulas in the deal (deal 12345 checked identical in classic and hard) |
 | 2026-11-19 | 2946 | 266 | `DEAL n` shortened to `# n`, the prompt to `#` |
 | 2026-11-19 | 2871 | 341 | no splash screen: the title shows on the dealing screen, and the first game starts at once, in classic |
+| 2026-11-19 | 2871 | 348 | the same build, measured after a win instead (a board one move from solved, set up in direct mode); the rows below are measured this way |
+| 2026-11-19 | 2956 | 263 | launcher step 1: the result for the launcher on a solved board (85 bytes) |
 
 `po%` takes 185 bytes, `mb%` and `tw%` 13 each, and the 23 simple variables take 7 bytes each (161).
