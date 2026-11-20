@@ -9,7 +9,8 @@ if ([System.IO.Path]::GetExtension($BasFile) -ne '.bas') {
 }
 
 . (Join-Path $PSScriptRoot 'machine.ps1')
-# the file name picks the machine: name-c64.bas is a C64 program, anything else a VIC-20 one
+# the file name picks the machine: name-c64.bas is a C64 program, name-plus4.bas a Plus/4 one,
+# anything else a VIC-20 one
 $machine = Get-MachineForFile $BasFile
 $emulator = $machine.Emulator
 $port = $machine.Port
@@ -27,7 +28,11 @@ $prg = Join-Path $prgs $PrgName
 # warnings only; the build goes ahead either way
 & (Join-Path $PSScriptRoot 'check-basic.ps1') -BasFile $BasFile
 
-& petcat.exe -w2 -l $machine.LoadAddress -o $prg $BasFile
+# the PRG is built from a copy without rems (they cost memory; the source keeps them), as CI does
+$stripped = Join-Path ([System.IO.Path]::GetTempPath()) ("{0}.stripped.bas" -f $PrgName)
+& (Join-Path $PSScriptRoot 'strip-rems.ps1') -BasFile $BasFile -OutFile $stripped
+# -w2 tokenizes BASIC V2, -w3 the Plus/4's BASIC 3.5
+& petcat.exe ('-w' + $machine.Basic.Split('.')[0]) -l $machine.LoadAddress -o $prg $stripped
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
@@ -89,8 +94,36 @@ function Try-ViceAutostart([string]$prgPath) {
     return Send-ViceCommand "autostart `"$unix`"" 'autostarting'
 }
 
+function Show-Emulator {
+    # bring the emulator's window to the front, so the program just loaded is in view. Windows only lets
+    # the foreground app hand over focus, so a tap of Alt first makes this script count as active input.
+    if (-not $IsWindows -and $PSVersionTable.PSEdition -eq 'Core') { return }
+    if (-not ('Win32.Focus' -as [type])) {
+        Add-Type -Namespace Win32 -Name Focus -MemberDefinition @'
+[DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+[DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+[DllImport("user32.dll")] public static extern bool IsIconic(IntPtr hWnd);
+[DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
+'@
+    }
+    # a newly started emulator needs a moment before it has a window
+    for ($i = 0; $i -lt 20; $i++) {
+        $proc = Get-Process -Name $emulator -ErrorAction SilentlyContinue |
+            Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero } | Select-Object -First 1
+        if ($proc) { break }
+        Start-Sleep -Milliseconds 250
+    }
+    if (-not $proc) { return }
+    $hwnd = $proc.MainWindowHandle
+    if ([Win32.Focus]::IsIconic($hwnd)) { [void][Win32.Focus]::ShowWindow($hwnd, 9) }  # 9 = restore
+    [Win32.Focus]::keybd_event(0x12, 0, 0, [UIntPtr]::Zero)  # Alt down
+    [Win32.Focus]::keybd_event(0x12, 0, 2, [UIntPtr]::Zero)  # Alt up
+    [void][Win32.Focus]::SetForegroundWindow($hwnd)
+}
+
 if (Try-ViceAutostart $prg) {
     Write-Host "Autostarted in running ${emulator}: $prg"
+    Show-Emulator
     exit 0
 }
 
@@ -106,3 +139,4 @@ $arguments = $machine.Args + @('-remotemonitor', '-remotemonitoraddress', "ip4:/
     (Get-NetMockArgs $reposDir) + @('-autostartprgmode', '0', '-autostart', $prg)
 Start-Process "$emulator.exe" -ArgumentList $arguments
 Write-Host "Started $emulator with remote monitor on port ${port}: $prg"
+Show-Emulator
